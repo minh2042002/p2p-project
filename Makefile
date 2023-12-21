@@ -4,4 +4,5 @@ client:
 server:
 	gcc -o TCP_Server/server TCP_Server/server.c TCP_Server/serverHandler.h TCP_Server/serverHandler.c
 clean:
-	rm -f $(TARGET)
+	rm -f TCP_Client/client
+	rm -f TCP_Server/server
