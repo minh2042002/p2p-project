@@ -1,4 +1,4 @@
-#Peer to peer share file
+# Peer to peer share file
 ### Make
 cd p2p-project
 make
