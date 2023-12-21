@@ -4,7 +4,10 @@
 cd p2p-project
 make
 ~~~
-### Make cle
+### Clean build
+~~~
+make clean
+~~~
 ### Run
 ~~~
 ./client <IP_Addr> <Port_Number>
