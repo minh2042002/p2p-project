@@ -3,6 +3,7 @@
 
 int createSocket();
 int connectServer(char *server_ip, int port_number, int client_socket);
-void received(int client_socket, char *buffer, int* bytes_received);
+void receive(int client_socket, char *buffer, int *bytes_received);
+int readAndSendFile(int client_socket, char *file_path);
 
 #endif

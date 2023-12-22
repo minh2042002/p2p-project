@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 
             char file_name[128];
             int file_size;
-            sscanf(buffer, "UPLD %s %d", file_name, &file_size);
+            sscanf(buffer, "%s %d", file_name, &file_size);
 
             // Create new file and wait send file from client
             char file_path[256];

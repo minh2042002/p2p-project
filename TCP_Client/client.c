@@ -35,10 +35,9 @@ int main(int argc, char *argv[])
     char buffer[256];
     int bytes_received;
 
-    received(client_socket, buffer, &bytes_received);
+    receive(client_socket, buffer, &bytes_received);
 
     char file_path[128];
-    int file_size;
 
     while (1)
     {
@@ -51,42 +50,12 @@ int main(int argc, char *argv[])
             break;
         }
 
-        FILE *file = fopen(file_path, "rb");
-        if (file == NULL)
-        {
-            perror("Không thể mở file");
+        int res = readAndSendFile(client_socket, file_path);
+        if (!res) {
             continue;
         }
 
-        fseek(file, 0, SEEK_END);
-        file_size = ftell(file);
-        fseek(file, 0, SEEK_SET);
-
-        char *token = strtok(file_path, "/");
-
-        // Loop to find the last file name in the path
-        char *file_name = NULL;
-        while (token != NULL) {
-            file_name = token; // Lưu giá trị token vào fileName
-            token = strtok(NULL, "/");
-        }   
-
-        // request send file with format " UPLD <name_file> <file_size> "
-        sprintf(buffer, "UPLD %s %d", file_name, file_size);
-        send(client_socket, buffer, 256, 0);
-
-        received(client_socket, buffer, &bytes_received);
-
-        // read file and send file
-        while (!feof(file))
-        {
-            bytes_received = fread(buffer, 1, sizeof(buffer), file);
-            send(client_socket, buffer, bytes_received, 0);
-        }
-
-        fclose(file);
-
-        received(client_socket, buffer, &bytes_received);
+        receive(client_socket, buffer, &bytes_received);
     }
 
     close(client_socket);
