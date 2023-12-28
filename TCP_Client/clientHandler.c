@@ -24,7 +24,7 @@ int createSocket()
 /// @param port_number port of server
 /// @param client_socket a socket descriptor
 /// @return 0 - if connect fail, 1 - if connect is success
-int connectServer(char *server_ip, int port_number, int client_socket)
+int connectServer(int client_socket, char *server_ip, int port_number)
 {
     struct sockaddr_in server_addr;
 
@@ -41,17 +41,91 @@ int connectServer(char *server_ip, int port_number, int client_socket)
     return 1;
 }
 
-/// @brief receive response from server
-/// @param client_socket a socket descriptor
-/// @param buffer response from server
-// void receive(int client_socket, char *buffer, int *bytes_received)
-// {
-//     *bytes_received = recv(client_socket, buffer, 256, 0);
-//     if (*bytes_received > 0)
-//     {
-//         printf("%s\n", buffer);
-//     }
-// }
+void registerIndex(int socket)
+{
+    char buffer[256];
+    int bytes_received;
+    int status;
+    char data[250];
+
+    // request send protocol register with format "SU"
+    sprintf(buffer, "SU");
+    send(socket, buffer, 256, 0);
+
+    bytes_received = recv(socket, buffer, 256, 0);
+    if (bytes_received == 0)
+    {
+        perror("An error occurred!");
+        exit(EXIT_FAILURE);
+    }
+
+    buffer[bytes_received] = '\0';
+    int result = sscanf(buffer, "%d - %s", &status, data); // status: 100 and index
+    if (result == 2)
+    {
+        printf("Sign up is succes.");
+
+        FILE *file = fopen("config.txt", "w");
+        if (file == NULL)
+        {
+            perror("Not open file and save index!");
+        }
+        else
+        {
+            fprintf(file, data);
+        }
+
+        fclose(file);
+    }
+    else
+    {
+        sscanf(buffer, "%d", &status); // status: 300
+        if (status == 300)
+        {
+            printf("Protocol is wrong!");
+        }
+        else {
+            perror("An unknown error");
+        }
+    }
+}
+
+void login(int socket, int index, int port)
+{
+    char buffer[256];
+    int bytes_received;
+    int status;
+    char data[250];
+
+    // request send protocol login with format "SI <ID> <LISTEN_PORT>"
+    sprintf(buffer, "SI %d %d", index, port);
+    send(socket, buffer, 256, 0);
+
+    bytes_received = recv(socket, buffer, 256, 0);
+    if (bytes_received == 0)
+    {
+        perror("An error occurred!");
+        exit(EXIT_FAILURE);
+    }
+
+    buffer[bytes_received] = '\0';
+    sscanf(buffer, "%d", status);
+    if (status == 110)
+    {
+        printf("Login is success.");
+    }
+    else if (status == 211)
+    {
+        printf("Unregistered!");
+    }
+    else if (status == 300)
+    {
+        printf("Protocol is wrong!");
+    }
+    else {
+        perror("An unknown error");
+    }
+}
 
 int readAndSendFile(int client_socket, char *file_path)
 {
