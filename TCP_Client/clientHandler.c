@@ -41,12 +41,12 @@ int connectServer(int client_socket, char *server_ip, int port_number)
     return 1;
 }
 
-void registerIndex(int socket)
+void register(int socket);
 {
     char buffer[256];
     int bytes_received;
     int status;
-    uint32_t index;
+    uint32_t id;
 
     // request send protocol register with format "SU"
     sprintf(buffer, "SU");
@@ -60,7 +60,7 @@ void registerIndex(int socket)
     }
 
     buffer[bytes_received] = '\0';
-    int result = sscanf(buffer, "%d - %u", &status, index); // status: 100 and index
+    int result = sscanf(buffer, "%d - %u", &status, id); // status: 100 and id
     if (result == 2)
     {
         printf("Sign up is succes.");
@@ -68,11 +68,11 @@ void registerIndex(int socket)
         FILE *file = fopen("config.txt", "w");
         if (file == NULL)
         {
-            perror("Not open file and save index!");
+            perror("Not open file and save id!");
         }
         else
         {
-            fprintf(file, index);
+            fprintf(file, id);
         }
 
         fclose(file);
@@ -90,7 +90,7 @@ void registerIndex(int socket)
     }
 }
 
-void login(int socket, uint32_t index, int port)
+void login(int socket, uint32_t id, int port)
 {
     char buffer[256];
     int bytes_received;
@@ -98,7 +98,7 @@ void login(int socket, uint32_t index, int port)
     char data[250];
 
     // request send protocol login with format "SI <ID> <LISTEN_PORT>"
-    sprintf(buffer, "SI %u %d", index, port);
+    sprintf(buffer, "SI %u %d", id, port);
     send(socket, buffer, 256, 0);
 
     bytes_received = recv(socket, buffer, 256, 0);

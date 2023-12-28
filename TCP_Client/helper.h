@@ -1,1 +1,1 @@
-int getIndex();
+int getID();

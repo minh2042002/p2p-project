@@ -6,30 +6,30 @@
 
 #include "helper.h"
 
-int getIndex() {
+int getID() {
     char line[100];
-    uint32_t index;
+    uint32_t id;
     char* endptr;
 
     FILE* file = fopen("config.txt", "rb");
     if (file == NULL) {
-        perror("Canot open file to get index!");
+        perror("Canot open file to get id!");
         return -1;
     }
 
     // Đọc dòng từ file
     if (fgets(line, sizeof(line), file) != NULL) {
         // In ra dòng đã đọc được
-        index = strtoul(line, &endptr, 10);
+        id = strtoul(line, &endptr, 10);
         if (*endptr != '\0' && *endptr != '\n') {
             perror("Cannot convert to uint32_t!");
-            index = -1;
+            id = -1;
         }
     } else {
-        index = -1;
+        id = -1;
     }
 
     // Đóng file sau khi đọc xong
     fclose(file);
-    return index;
+    return id;
 }
