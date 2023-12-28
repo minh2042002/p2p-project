@@ -6,49 +6,14 @@
 
 #include "clientHandler.h"
 
-/// @brief create new socket
-/// @return a socket descriptor return -1 if create fail)
-int createSocket()
-{
-    int client_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (client_socket < 0)
-    {
-        perror("\nError socket(): ");
-        exit(EXIT_FAILURE);
-    }
-    return client_socket;
-}
-
-/// @brief connect server with socket
-/// @param server_ip server address
-/// @param port_number port of server
-/// @param client_socket a socket descriptor
-/// @return 0 - if connect fail, 1 - if connect is success
-int connectServer(int client_socket, char *server_ip, int port_number)
-{
-    struct sockaddr_in server_addr;
-
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port_number);
-    server_addr.sin_addr.s_addr = inet_addr(server_ip);
-
-    if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-    {
-        perror("\nError connect(): ");
-        exit(EXIT_FAILURE);
-    }
-
-    return 1;
-}
-
-void register(int socket);
+void signup(int socket)
 {
     char buffer[256];
     int bytes_received;
     int status;
     uint32_t id;
 
-    // request send protocol register with format "SU"
+    // request send protocol signup with format "SU"
     sprintf(buffer, "SU");
     send(socket, buffer, 256, 0);
 
@@ -116,7 +81,7 @@ void login(int socket, uint32_t id, int port)
     }
     else if (status == 211)
     {
-        printf("Unregistered!");
+        printf("Unsignuped!");
     }
     else if (status == 300)
     {
@@ -125,6 +90,10 @@ void login(int socket, uint32_t id, int port)
     else {
         perror("An unknown error");
     }
+}
+
+void registerShareFile(int socket, uint32_t id, char* file_name) {
+
 }
 
 int readAndSendFile(int client_socket, char *file_path)
