@@ -9,9 +9,9 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc != 3)
+    if (argc != 2)
     {
-        printf("Sử dụng: %s <Port_Number> <Directory_name>\n", argv[0]);
+        printf("usage: ./server <#Port_Number>");
         return 1;
     }
 

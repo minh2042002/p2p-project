@@ -1,9 +1,6 @@
-#ifndef CLIENT_HANDLER_H
-#define CLIENT_HANDLER_H
-
 int createSocket();
-int connectServer(char *server_ip, int port_number, int client_socket);
-void receive(int client_socket, char *buffer, int *bytes_received);
+int connectServer(int client_socket, char *server_ip, int port_number);
+// void receive(int client_socket, char *buffer, int *bytes_received);
 int readAndSendFile(int client_socket, char *file_path);
-
-#endif
+void registerIndex(int socket);
+void login(int socket, int id);

@@ -13,9 +13,9 @@ int createSocket()
     int client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket < 0)
     {
-        perror("Không thể tạo socket");
+        perror("\nError socket(): ");
+        exit(EXIT_FAILURE);
     }
-
     return client_socket;
 }
 
@@ -34,8 +34,8 @@ int connectServer(char *server_ip, int port_number, int client_socket)
 
     if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
-        perror("Không thể kết nối đến server");
-        return 0;
+        perror("\nError connect(): ");
+        exit(EXIT_FAILURE);
     }
 
     return 1;
@@ -44,21 +44,21 @@ int connectServer(char *server_ip, int port_number, int client_socket)
 /// @brief receive response from server
 /// @param client_socket a socket descriptor
 /// @param buffer response from server
-void receive(int client_socket, char *buffer, int *bytes_received)
-{
-    *bytes_received = recv(client_socket, buffer, 256, 0);
-    if (*bytes_received > 0)
-    {
-        printf("%s\n", buffer);
-    }
-}
+// void receive(int client_socket, char *buffer, int *bytes_received)
+// {
+//     *bytes_received = recv(client_socket, buffer, 256, 0);
+//     if (*bytes_received > 0)
+//     {
+//         printf("%s\n", buffer);
+//     }
+// }
 
 int readAndSendFile(int client_socket, char *file_path)
 {
     char buffer[256];
     int bytes_received;
     int file_size;
-    
+
     FILE *file = fopen(file_path, "rb");
     if (file == NULL)
     {

@@ -3,62 +3,101 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-
-#include "clientHandler.h"
-
+#include <pthread.h>
+#include "../common/socketp2p.h";
+#include "./helper.h";
+#include "./clientHandler.h";
+struct ServerInfo
+{
+    char *ip;
+    int port;
+};
+void *listenThread(void *);
+void *requestThread(void *);
+void *connectServerThread(void *);
 int main(int argc, char *argv[])
 {
-    if (argc != 3)
+    if (argc != 4)
     {
-        printf("Sử dụng: %s <IP_Addr> <Port_Number>\n", argv[0]);
+        printf("usage: ./client <#Server_IP> <#Server_PORT> <#Listen_PORT>");
         return 1;
     }
 
-    char *server_ip = argv[1];
-    int port_number = atoi(argv[2]);
+    int server_port = atoi(argv[2]);
+    int listen_port = atoi(argv[3]);
 
+    struct ServerInfo serverInfo;
+    serverInfo.ip = argv[1];
+    serverInfo.port = server_port;
+
+    // create connect server socket thread
+    pthread_t serverTid;
+    pthread_create(&serverTid, NULL, connectServerThread, &serverInfo);
+
+    // create listen socket thread
+    pthread_t listenTid;
+    pthread_create(&listenTid, NULL, listenThread, listen_port);
+    return 0;
+}
+void printMenu()
+{
+    printf("Menu:\n");
+    printf("1. Chia sẻ file\n");
+    printf("2. Hủy chia sẻ file\n");
+    printf("3. Tìm kiếm file\n");
+    printf("4. Download file\n");
+    printf("Nhập chức năng: ");
+}
+void *connectServerThread(void *arg)
+{
+    pthread_detach(pthread_self());
+    struct ServerInfo *serverInfo = (struct ServerInfo *)arg;
     int client_socket = createSocket();
-    if (client_socket == -1)
+    connectServer(client_socket, serverInfo->ip, serverInfo->port);
+    int id = getIndex(); // kiểm tra client có id chưa. -1
+    if (id == -1)
     {
-        return 1;
+        registerIndex(client_socket);
     }
-    
-    int connect = connectServer(server_ip, port_number, client_socket);
-    if (connect == 0)
+    else
     {
-        return 1;
+        login(client_socket, id);
     }
-
-
-    /// Client handler
-
-    char buffer[256];
-    int bytes_received;
-
-    receive(client_socket, buffer, &bytes_received);
-
-    char file_path[128];
-
     while (1)
     {
-        printf("Nhập đường dẫn file hoặc nhấn Enter để kết thúc: ");
-        fgets(file_path, sizeof(file_path), stdin);
-        file_path[strcspn(file_path, "\n")] = '\0';
-
-        if (strlen(file_path) == 0)
+        int function = 0;
+        printMenu();
+        int r = scanf("%d", &function);
+        if (r != 1 || function < 1 || function > 4)
         {
-            break;
-        }
-
-        int res = readAndSendFile(client_socket, file_path);
-        if (!res) {
+            printf("Nhập chức năng từ 1 - 4!\n");
             continue;
         }
-
-        receive(client_socket, buffer, &bytes_received);
+        if (function == 1)
+        {
+            /* code */
+        }
+        else if (function == 2)
+        {
+            /* code */
+        }
+        else if (function == 3)
+        {
+            /* code */
+        }
+        else
+        {
+            /* code */
+        }
     }
 
     close(client_socket);
-
-    return 0;
+}
+void *requestThread(void *arg)
+{
+    pthread_detach(pthread_self());
+};
+void *connectServerThread(void *arg)
+{
+    pthread_detach(pthread_self());
 }
