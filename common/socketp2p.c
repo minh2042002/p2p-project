@@ -18,9 +18,9 @@ int createSocket()
 /// @brief connect server with socket
 /// @param server_ip server address
 /// @param port_number port of server
-/// @param client_socket a socket descriptor
+/// @param client_sock a socket descriptor
 /// @return 0 - if connect fail, 1 - if connect is success
-void connectSocket(int client_socket, char *server_ip, int port_number)
+void connectSocket(int client_sock, char *server_ip, int port_number)
 {
     struct sockaddr_in server_addr;
 
@@ -28,7 +28,7 @@ void connectSocket(int client_socket, char *server_ip, int port_number)
     server_addr.sin_port = htons(port_number);
     server_addr.sin_addr.s_addr = inet_addr(server_ip);
 
-    if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    if (connect(client_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("\nError connect(): ");
         exit(EXIT_FAILURE);
@@ -37,9 +37,9 @@ void connectSocket(int client_socket, char *server_ip, int port_number)
 
 /// @brief bind server with port and socket descriptor
 /// @param port_number port server
-/// @param listen_socket  a socket descriptor
+/// @param listen_sock  a socket descriptor
 /// @return 0 nnn
-void bindSocket(int port_number, int listen_socket)
+void bindSocket(int listen_sock, int port_number)
 {
     struct sockaddr_in server_addr;
 
@@ -47,9 +47,29 @@ void bindSocket(int port_number, int listen_socket)
     server_addr.sin_port = htons(port_number);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
-    if (bind(listen_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    if (bind(listen_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("\nError bind(): ");
         exit(EXIT_FAILURE);
     }
+}
+
+void listenSocket(int listen_sock, int backlog)
+{
+    if (listen(listen_sock, backlog) == -1)
+    {
+        perror("\nError listen(): ");
+        exit(EXIT_FAILURE);
+    }
+}
+
+int acceptSocket(int server_sock, struct sockaddr *client_addr, socklen_t *client_len)
+{
+    int conn_sock = accept(server_sock, (struct sockaddr *)&client_addr, client_len);
+    if (conn_sock < 0)
+    {
+        perror("\nError accept(): ");
+        exit(EXIT_FAILURE);
+    }
+    return conn_sock;
 }

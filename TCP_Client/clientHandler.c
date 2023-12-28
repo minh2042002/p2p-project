@@ -136,7 +136,7 @@ int readAndSendFile(int client_socket, char *file_path)
     FILE *file = fopen(file_path, "rb");
     if (file == NULL)
     {
-        perror("Không thể mở file");
+        perror("Error");
         return 0;
     }
 
