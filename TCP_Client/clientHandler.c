@@ -46,7 +46,7 @@ void registerIndex(int socket)
     char buffer[256];
     int bytes_received;
     int status;
-    char data[250];
+    uint32_t index;
 
     // request send protocol register with format "SU"
     sprintf(buffer, "SU");
@@ -60,7 +60,7 @@ void registerIndex(int socket)
     }
 
     buffer[bytes_received] = '\0';
-    int result = sscanf(buffer, "%d - %s", &status, data); // status: 100 and index
+    int result = sscanf(buffer, "%d - %u", &status, index); // status: 100 and index
     if (result == 2)
     {
         printf("Sign up is succes.");
@@ -72,7 +72,7 @@ void registerIndex(int socket)
         }
         else
         {
-            fprintf(file, data);
+            fprintf(file, index);
         }
 
         fclose(file);
@@ -90,7 +90,7 @@ void registerIndex(int socket)
     }
 }
 
-void login(int socket, int index, int port)
+void login(int socket, uint32_t index, int port)
 {
     char buffer[256];
     int bytes_received;
@@ -98,7 +98,7 @@ void login(int socket, int index, int port)
     char data[250];
 
     // request send protocol login with format "SI <ID> <LISTEN_PORT>"
-    sprintf(buffer, "SI %d %d", index, port);
+    sprintf(buffer, "SI %u %d", index, port);
     send(socket, buffer, 256, 0);
 
     bytes_received = recv(socket, buffer, 256, 0);

@@ -8,8 +8,9 @@
 
 int getIndex() {
     char line[100];
-    int index;
-    
+    uint32_t index;
+    char* endptr;
+
     FILE* file = fopen("config.txt", "rb");
     if (file == NULL) {
         perror("Canot open file to get index!");
@@ -19,7 +20,11 @@ int getIndex() {
     // Đọc dòng từ file
     if (fgets(line, sizeof(line), file) != NULL) {
         // In ra dòng đã đọc được
-        index = atoi(line);
+        index = strtoul(line, &endptr, 10);
+        if (*endptr != '\0' && *endptr != '\n') {
+            perror("Cannot convert to uint32_t!");
+            index = -1;
+        }
     } else {
         index = -1;
     }

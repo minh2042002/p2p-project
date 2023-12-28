@@ -30,7 +30,7 @@ uint32_t findClient(char *ip_address, uint16_t port)
 {
     FILE *file;
     char line[256];
-    char search_string
+    char search_string;
 }
 
 void saveClientId(uint32_t client_id, char *ip_address, uint16_t port)
