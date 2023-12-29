@@ -7,6 +7,7 @@
 #include "../common/socketp2p.h";
 #include "./helper.h";
 #include "./clientHandler.h";
+#define BUFF_SIZE 256
 struct ServerInfo
 {
     char *ip;
@@ -39,6 +40,7 @@ int main(int argc, char *argv[])
     pthread_create(&listenTid, NULL, listenThread, listen_port);
     return 0;
 }
+
 void printMenu()
 {
     printf("Menu:\n");
@@ -75,19 +77,19 @@ void *connectServerThread(void *arg)
         }
         if (function == 1)
         {
-            /* code */
+            shareFile(client_socket);
         }
         else if (function == 2)
         {
-            /* code */
+            cancelShareFile(client_socket);
         }
         else if (function == 3)
         {
-            /* code */
+            findFile(client_socket);
         }
         else
         {
-            /* code */
+            downloadFile(client_socket);
         }
     }
 
@@ -97,7 +99,71 @@ void *requestThread(void *arg)
 {
     pthread_detach(pthread_self());
 };
-void *connectServerThread(void *arg)
+void *listenThread(void *arg)
 {
+
     pthread_detach(pthread_self());
+    int port = (int *)arg;
+
+    int l = 0, ret = 0;
+    char command[BUFF_SIZE];
+    char send_data[BUFF_SIZE];
+    char buffer[BUFF_SIZE];
+    pthread_t tid;
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    int listen_sock = createSocket();
+    bindSocket(port, listen_sock);
+    listenSocket(listen_sock, 5);
+    int conn_sock;
+    while (1)
+    {
+        conn_sock = acceptSocket(listen_sock, (struct sockaddr *)&client_addr, &client_len);
+        ret = recv(listen_sock, buffer, 256, 0);
+        if (ret <= 0)
+        {
+            // close
+            break;
+        }
+        else
+        {
+            int len = strlen(buffer);
+            for (int i = 0; i < len; i++)
+            {
+                if (l < BUFF_SIZE)
+                {
+                    l++;
+                }
+                if (l < BUFF_SIZE)
+                {
+                    command[l] = buffer[i];
+                }
+                else
+                {
+                    command[l - 2] = command[l - 1];
+                    command[l - 1] = buffer[i];
+                }
+                if (l > 1 && command[l - 1] == '\r' && command[l] == '\n')
+                {
+                    if (l == 2 * BUFF_SIZE)
+                    {
+                        memset(send_data, '\0', BUFF_SIZE);
+                        strcpy(send_data, "310");
+                        ret = send(conn_sock, send_data, BUFF_SIZE, 0);
+                        l = 0;
+                    }
+                    else
+                    {
+                        command[l - 1] = '\0';
+                        if (strcmp(command, "DL") == 0)
+                        {
+                            // Todo: Xử lý truyền file
+                        }
+                        l = -1;
+                    }
+                }
+            }
+        }
+    }
+    close(conn_sock);
 }
