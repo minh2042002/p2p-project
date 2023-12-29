@@ -8,9 +8,11 @@
 
 struct Client
 {
-    uint32_t index;
+    uint32_t id;
     struct sockaddr_in _addr;
     int isLogin; // 1 - login, 0 - logout
+    struct Client *next;
+    struct Client *prev;
 };
 
 #endif

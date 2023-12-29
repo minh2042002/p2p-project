@@ -6,13 +6,10 @@
 #include <stdint.h>
 #include <pthread.h>
 #include "../common/socketp2p.h";
+#include "Client.h";
+
 #define BUFF_SIZE 256
 void *handleThread(void *);
-struct LoginStatus
-{
-    uint32_t clientId;
-    struct LoginStatus *next;
-};
 
 int main(int argc, char *argv[])
 {
@@ -31,6 +28,8 @@ int main(int argc, char *argv[])
     bindSocket(port_number, server_sock);
     listenSocket(server_sock, 5);
 
+    struct Client *clientList = NULL;
+
     char buffer[256];
     int bytes_received;
     char message[256];
@@ -48,6 +47,7 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
 void *handleThread(void *arg)
 {
     int ret;

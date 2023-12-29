@@ -63,7 +63,7 @@ void *connectServerThread(void *arg)
     uint32_t id = getID(); // kiểm tra client có id chưa. -1
     if (id == -1)
     {
-        register(client_socket);
+        signup(client_socket);
     }
     else
     {
