@@ -22,24 +22,26 @@ int main(int argc, char *argv[])
     int port_number = atoi(argv[1]);
     int *connfd;
     pthread_t tid;
-    struct sockaddr_in client_addr;
-    socklen_t client_len = sizeof(client_addr);
+    struct sockaddr_in *client_addr;
+    int sin_size;
     int server_sock = createSocket();
-    bindSocket(port_number, server_sock);
-    listenSocket(server_sock, 5);
+    bindSocket(server_sock, port_number);
+    listenSocket(server_sock, 10);
 
     struct Client *clientList = NULL;
 
     char buffer[256];
     int bytes_received;
     char message[256];
-
+    sin_size = sizeof(struct sockaddr_in);
+    client_addr = malloc(sin_size);
     while (1)
     {
         connfd = malloc(sizeof(int));
+
         // connect with a client
-        *connfd = acceptSocket(server_sock, (struct sockaddr *)&client_addr, &client_len);
-        printf("[+] Đã kết nối với %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        *connfd = acceptSocket(server_sock, (struct sockaddr *)client_addr, &sin_size);
+        printf("[+] Đã kết nối với %s:%d\n", inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
         pthread_create(&tid, NULL, &handleThread, (void *)connfd);
     }
 
