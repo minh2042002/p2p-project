@@ -125,6 +125,9 @@ void *handleThread(void *arg)
                             add(&clientList, newClient);
                             login(newClient);
                             saveAll(clientList);
+
+                            sprintf(buffer, "%d - %u", 100, id);
+                            send(connfd, buffer, 256, 0);
                         }
                         else if (strstr(command, "SI ") == command)
                         {
