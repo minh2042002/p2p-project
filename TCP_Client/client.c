@@ -38,10 +38,10 @@ int main(int argc, char *argv[])
     // create connect server socket thread
     pthread_t serverTid;
     pthread_create(&serverTid, NULL, &connectServerThread, (void *)&serverInfo);
-
     // create listen socket thread
     pthread_t listenTid;
     pthread_create(&listenTid, NULL, &listenThread, (void *)&listen_port);
+    pthread_join(serverTid, NULL);
     return 0;
 }
 
@@ -56,7 +56,6 @@ void printMenu()
 }
 void *connectServerThread(void *arg)
 {
-    pthread_detach(pthread_self());
     struct ServerInfo *serverInfo = (struct ServerInfo *)arg;
     int client_socket = createSocket();
     connectSocket(client_socket, serverInfo->ip, serverInfo->port);
@@ -96,7 +95,7 @@ void *connectServerThread(void *arg)
             downloadFile(client_socket);
         }
     }
-
+    printf("close exe co ser\n");
     close(client_socket);
 }
 void *requestThread(void *arg)
@@ -117,7 +116,7 @@ void *listenThread(void *arg)
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     int listen_sock = createSocket();
-    bindSocket(port, listen_sock);
+    bindSocket(listen_sock, port);
     listenSocket(listen_sock, 5);
     int conn_sock;
     while (1)

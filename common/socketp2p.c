@@ -65,8 +65,8 @@ void listenSocket(int listen_socket, int backlog)
 
 int acceptSocket(int server_socket, struct sockaddr *client_addr, socklen_t *client_len)
 {
-    int conn_sock = accept(server_socket, (struct sockaddr *)&client_addr, client_len);
-    if (conn_sock < 0)
+    int conn_sock = accept(server_socket, client_addr, client_len);
+    if (conn_sock == -1)
     {
         perror("\nError accept(): ");
         exit(EXIT_FAILURE);

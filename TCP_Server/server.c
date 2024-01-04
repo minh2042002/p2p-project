@@ -27,23 +27,24 @@ int main(int argc, char *argv[])
     int port_number = atoi(argv[1]);
     int *connfd;
     pthread_t tid;
-    struct sockaddr_in client_addr;
-    socklen_t client_len = sizeof(client_addr);
+    struct sockaddr_in *client_addr;
+    int sin_size;
     int server_sock = createSocket();
-    bindSocket(port_number, server_sock);
-    listenSocket(server_sock, 5);
-
+    bindSocket(server_sock, port_number);
+    listenSocket(server_sock, 10);
 
     char buffer[256];
     int bytes_received;
     char message[256];
-
+    sin_size = sizeof(struct sockaddr_in);
+    client_addr = malloc(sin_size);
     while (1)
     {
         connfd = malloc(sizeof(int));
+
         // connect with a client
-        *connfd = acceptSocket(server_sock, (struct sockaddr *)&client_addr, &client_len);
-        printf("[+] Đã kết nối với %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        *connfd = acceptSocket(server_sock, (struct sockaddr *)client_addr, &sin_size);
+        printf("[+] Đã kết nối với %s:%d\n", inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
         pthread_create(&tid, NULL, &handleThread, (void *)connfd);
     }
 
@@ -59,7 +60,7 @@ void *handleThread(void *arg)
     free(arg);
     pthread_detach(pthread_self());
 
-    int l = 0;
+    int l = -1;
     char buffer[256];
     char command[BUFF_SIZE];
     char send_data[BUFF_SIZE];
@@ -89,9 +90,10 @@ void *handleThread(void *arg)
                     command[l - 2] = command[l - 1];
                     command[l - 1] = buffer[i];
                 }
+
                 if (l > 1 && command[l - 1] == '\r' && command[l] == '\n')
                 {
-                    if (l == 2 * BUFF_SIZE)
+                    if (l >= BUFF_SIZE)
                     {
                         memset(send_data, '\0', BUFF_SIZE);
                         strcpy(send_data, "310");
@@ -122,6 +124,7 @@ void *handleThread(void *arg)
                             struct Client *newClient = create(id, client_ip, client_port);
                             add(&clientList, newClient);
                             login(newClient);
+                            saveAll(clientList);
                         }
                         else if (strstr(command, "SI ") == command)
                         {
