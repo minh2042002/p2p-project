@@ -14,7 +14,7 @@ void signup(int socket)
     uint32_t id;
 
     // request send protocol signup with format "SU"
-    sprintf(buffer, "SU");
+    sprintf(buffer, "SU\r\n");
     send(socket, buffer, 256, 0);
 
     bytes_received = recv(socket, buffer, 256, 0);
@@ -142,18 +142,18 @@ int readAndSendFile(int client_socket, char *file_path)
     return 1;
 }
 
-void shareFile(int socket) {
-
+void shareFile(int socket)
+{
 }
 
-void cancelShareFile(int socket) {
-
+void cancelShareFile(int socket)
+{
 }
 
-void findFile(int socket) {
-
+void findFile(int socket)
+{
 }
 
-void downloadFile(int socket) {
-    
+void downloadFile(int socket)
+{
 }

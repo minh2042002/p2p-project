@@ -7,9 +7,11 @@
 #include <pthread.h>
 #include "../common/socketp2p.h"
 #include "Client.h"
+#include "serverHandler.h"
 
 #define BUFF_SIZE 256
 void *handleThread(void *);
+struct Client *clientList = NULL;
 
 int main(int argc, char *argv[])
 {
@@ -19,6 +21,9 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // Load list client
+    loadFromFile(&clientList);
+
     int port_number = atoi(argv[1]);
     int *connfd;
     pthread_t tid;
@@ -27,8 +32,6 @@ int main(int argc, char *argv[])
     int server_sock = createSocket();
     bindSocket(server_sock, port_number);
     listenSocket(server_sock, 10);
-
-    struct Client *clientList = NULL;
 
     char buffer[256];
     int bytes_received;
@@ -57,7 +60,7 @@ void *handleThread(void *arg)
     free(arg);
     pthread_detach(pthread_self());
 
-    int l = 0;
+    int l = -1;
     char buffer[256];
     char command[BUFF_SIZE];
     char send_data[BUFF_SIZE];
@@ -87,9 +90,10 @@ void *handleThread(void *arg)
                     command[l - 2] = command[l - 1];
                     command[l - 1] = buffer[i];
                 }
+
                 if (l > 1 && command[l - 1] == '\r' && command[l] == '\n')
                 {
-                    if (l == 2 * BUFF_SIZE)
+                    if (l >= BUFF_SIZE)
                     {
                         memset(send_data, '\0', BUFF_SIZE);
                         strcpy(send_data, "310");
@@ -101,7 +105,26 @@ void *handleThread(void *arg)
                         command[l - 1] = '\0';
                         if (strcmp(command, "SU") == 0)
                         {
-                            // Todo sign up
+                            // Get IP and PORT of client from connfd
+                            struct sockaddr_in peer_addr;
+                            socklen_t peer_len = sizeof(peer_addr);
+                            if (getpeername(connfd, (struct sockaddr *)&peer_addr, &peer_len) == -1)
+                            {
+                                perror("Unable to get client information!");
+                                close(connfd);
+                                exit(EXIT_FAILURE);
+                            }
+
+                            char client_ip[INET_ADDRSTRLEN];
+                            inet_ntop(AF_INET, &(peer_addr.sin_addr), client_ip, sizeof(client_ip));
+                            uint16_t client_port = ntohs(peer_addr.sin_port);
+
+                            uint32_t id = generateClientID();
+
+                            struct Client *newClient = create(id, client_ip, client_port);
+                            add(&clientList, newClient);
+                            login(newClient);
+                            saveAll(clientList);
                         }
                         else if (strstr(command, "SI ") == command)
                         {
