@@ -13,6 +13,10 @@ struct ServerInfo
     char *ip;
     int port;
 };
+
+int listen_port;
+int server_port;
+
 void *listenThread(void *);
 void *requestThread(void *);
 void *connectServerThread(void *);
@@ -24,8 +28,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    int server_port = atoi(argv[2]);
-    int listen_port = atoi(argv[3]);
+    server_port = atoi(argv[2]);
+    listen_port = atoi(argv[3]);
 
     struct ServerInfo serverInfo;
     serverInfo.ip = argv[1];
@@ -56,14 +60,14 @@ void *connectServerThread(void *arg)
     struct ServerInfo *serverInfo = (struct ServerInfo *)arg;
     int client_socket = createSocket();
     connectServer(client_socket, serverInfo->ip, serverInfo->port);
-    int id = getIndex(); // kiểm tra client có id chưa. -1
+    uint32_t id = getID(); // kiểm tra client có id chưa. -1
     if (id == -1)
     {
-        registerIndex(client_socket);
+        signup(client_socket);
     }
     else
     {
-        login(client_socket, id);
+        login(client_socket, id, listen_port);
     }
     while (1)
     {

@@ -6,17 +6,95 @@
 
 #include "clientHandler.h"
 
-/// @brief receive response from server
-/// @param client_socket a socket descriptor
-/// @param buffer response from server
-// void receive(int client_socket, char *buffer, int *bytes_received)
-// {
-//     *bytes_received = recv(client_socket, buffer, 256, 0);
-//     if (*bytes_received > 0)
-//     {
-//         printf("%s\n", buffer);
-//     }
-// }
+void signup(int socket)
+{
+    char buffer[256];
+    int bytes_received;
+    int status;
+    uint32_t id;
+
+    // request send protocol signup with format "SU"
+    sprintf(buffer, "SU");
+    send(socket, buffer, 256, 0);
+
+    bytes_received = recv(socket, buffer, 256, 0);
+    if (bytes_received == 0)
+    {
+        perror("An error occurred!");
+        exit(EXIT_FAILURE);
+    }
+
+    buffer[bytes_received] = '\0';
+    int result = sscanf(buffer, "%d - %u", &status, id); // status: 100 and id
+    if (result == 2)
+    {
+        printf("Sign up is succes.");
+
+        FILE *file = fopen("config.txt", "w");
+        if (file == NULL)
+        {
+            perror("Not open file and save id!");
+        }
+        else
+        {
+            fprintf(file, id);
+        }
+
+        fclose(file);
+    }
+    else
+    {
+        sscanf(buffer, "%d", &status); // status: 300
+        if (status == 300)
+        {
+            printf("Protocol is wrong!");
+        }
+        else {
+            perror("An unknown error");
+        }
+    }
+}
+
+void login(int socket, uint32_t id, int port)
+{
+    char buffer[256];
+    int bytes_received;
+    int status;
+    char data[250];
+
+    // request send protocol login with format "SI <ID> <LISTEN_PORT>"
+    sprintf(buffer, "SI %u %d", id, port);
+    send(socket, buffer, 256, 0);
+
+    bytes_received = recv(socket, buffer, 256, 0);
+    if (bytes_received == 0)
+    {
+        perror("An error occurred!");
+        exit(EXIT_FAILURE);
+    }
+
+    buffer[bytes_received] = '\0';
+    sscanf(buffer, "%d", status);
+    if (status == 110)
+    {
+        printf("Login is success.");
+    }
+    else if (status == 211)
+    {
+        printf("Unsignuped!");
+    }
+    else if (status == 300)
+    {
+        printf("Protocol is wrong!");
+    }
+    else {
+        perror("An unknown error");
+    }
+}
+
+void registerShareFile(int socket, uint32_t id, char* file_name) {
+
+}
 
 int readAndSendFile(int client_socket, char *file_path)
 {
