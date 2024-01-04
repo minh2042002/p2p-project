@@ -80,7 +80,8 @@ void *connectServerThread(void *arg)
         }
         if (function == 1)
         {
-            shareFile(client_socket);
+            
+            registerShareFile(client_socket, id, file_name);
         }
         else if (function == 2)
         {

@@ -96,6 +96,34 @@ void login(int socket, uint32_t id, int port)
 
 void registerShareFile(int socket, uint32_t id, char *file_name)
 {
+    char buffer[256];
+    int bytes_received;
+    int status;
+
+    // request send protocol register share file
+    sprintf(buffer, "SH %u %s", id, file_name);
+    send(socket, buffer, 256, 0);
+
+    bytes_received = recv(socket, buffer, 256, 0);
+    if (bytes_received == 0) {
+        perror("An error occurred!");
+        exit(EXIT_FAILURE);
+    }
+
+    buffer[bytes_received] = '\0';
+    sscanf(buffer, "%d", &status);
+    if (status == 120)
+    {
+        printf("Register share file is success.");
+    }
+    else if (status == 300)
+    {
+        printf("Protocol is wrong!");
+    }
+    else
+    {
+        perror("An unknown error");
+    }
 }
 
 int readAndSendFile(int client_socket, char *file_path)
