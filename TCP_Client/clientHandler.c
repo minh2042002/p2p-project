@@ -25,7 +25,7 @@ void signup(int socket)
     }
 
     buffer[bytes_received] = '\0';
-    int result = sscanf(buffer, "%d - %u", &status, id); // status: 100 and id
+    int result = sscanf(buffer, "%d - %u", &status, &id); // status: 100 and id
     if (result == 2)
     {
         printf("Sign up is succes.");
@@ -37,7 +37,7 @@ void signup(int socket)
         }
         else
         {
-            fprintf(file, id);
+            fprintf(file, "%d", id);
         }
 
         fclose(file);
@@ -49,7 +49,8 @@ void signup(int socket)
         {
             printf("Protocol is wrong!");
         }
-        else {
+        else
+        {
             perror("An unknown error");
         }
     }
@@ -74,7 +75,7 @@ void login(int socket, uint32_t id, int port)
     }
 
     buffer[bytes_received] = '\0';
-    sscanf(buffer, "%d", status);
+    sscanf(buffer, "%d", &status);
     if (status == 110)
     {
         printf("Login is success.");
@@ -87,13 +88,14 @@ void login(int socket, uint32_t id, int port)
     {
         printf("Protocol is wrong!");
     }
-    else {
+    else
+    {
         perror("An unknown error");
     }
 }
 
-void registerShareFile(int socket, uint32_t id, char* file_name) {
-
+void registerShareFile(int socket, uint32_t id, char *file_name)
+{
 }
 
 int readAndSendFile(int client_socket, char *file_path)
@@ -127,7 +129,7 @@ int readAndSendFile(int client_socket, char *file_path)
     sprintf(buffer, "%s %d", file_name, file_size);
     send(client_socket, buffer, 256, 0);
 
-    receive(client_socket, buffer, &bytes_received);
+    recv(client_socket, buffer, bytes_received, 0);
 
     // read file and send file
     while (!feof(file))

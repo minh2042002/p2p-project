@@ -4,9 +4,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "../common/socketp2p.h";
-#include "./helper.h";
-#include "./clientHandler.h";
+#include "../common/socketp2p.h"
+#include "./helper.h"
+#include "./clientHandler.h"
 #define BUFF_SIZE 256
 struct ServerInfo
 {
@@ -37,11 +37,11 @@ int main(int argc, char *argv[])
 
     // create connect server socket thread
     pthread_t serverTid;
-    pthread_create(&serverTid, NULL, connectServerThread, &serverInfo);
+    pthread_create(&serverTid, NULL, &connectServerThread, (void *)&serverInfo);
 
     // create listen socket thread
     pthread_t listenTid;
-    pthread_create(&listenTid, NULL, listenThread, listen_port);
+    pthread_create(&listenTid, NULL, &listenThread, (void *)&listen_port);
     return 0;
 }
 
@@ -107,7 +107,7 @@ void *listenThread(void *arg)
 {
 
     pthread_detach(pthread_self());
-    int port = (int *)arg;
+    int port = *((int *)arg);
 
     int l = 0, ret = 0;
     char command[BUFF_SIZE];
