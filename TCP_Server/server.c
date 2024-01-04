@@ -13,6 +13,9 @@ void *handleThread(void *);
 
 int main(int argc, char *argv[])
 {
+
+    struct Client *clientList = NULL;
+
     if (argc != 2)
     {
         printf("usage: ./server <#Port_Number>");
@@ -99,7 +102,7 @@ void *handleThread(void *arg)
                         command[l - 1] = '\0';
                         if (strcmp(command, "SU") == 0)
                         {
-                            // Todo sign up
+                            si
                         }
                         else if (strstr(command, "SI ") == command)
                         {
