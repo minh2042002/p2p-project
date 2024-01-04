@@ -52,6 +52,7 @@ void printMenu()
     printf("2. Hủy chia sẻ file\n");
     printf("3. Tìm kiếm file\n");
     printf("4. Download file\n");
+    printf("5. Exit\n");
     printf("Nhập chức năng: ");
 }
 void *connectServerThread(void *arg)
@@ -73,9 +74,9 @@ void *connectServerThread(void *arg)
         int function = 0;
         printMenu();
         int r = scanf("%d", &function);
-        if (r != 1 || function < 1 || function > 4)
+        if (r != 1 || function < 1 || function > 5)
         {
-            printf("Nhập chức năng từ 1 - 4!\n");
+            printf("Nhập chức năng từ 1 - 5!\n");
             continue;
         }
         if (function == 1)
@@ -91,12 +92,15 @@ void *connectServerThread(void *arg)
         {
             findFile(client_socket);
         }
-        else
+        else if (function == 4)
         {
             downloadFile(client_socket);
         }
+        else if (function == 5)
+        {
+            break;
+        }
     }
-    printf("close exe co ser\n");
     close(client_socket);
 }
 void *requestThread(void *arg)

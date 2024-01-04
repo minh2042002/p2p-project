@@ -144,6 +144,7 @@ void loadFromFile(struct Client **head)
         fread(client, sizeof(struct Client), 1, file);
         client->next = NULL;
         client->prev = NULL;
+        client->isLogin = 0;
         add(head, client);
     }
 

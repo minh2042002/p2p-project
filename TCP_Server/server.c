@@ -12,7 +12,7 @@
 #define BUFF_SIZE 256
 void *handleThread(void *);
 struct Client *clientList = NULL;
-
+pthread_mutex_t loginMutex = PTHREAD_MUTEX_INITIALIZER;
 int main(int argc, char *argv[])
 {
     if (argc != 2)
@@ -64,12 +64,14 @@ void *handleThread(void *arg)
     char buffer[256];
     char command[BUFF_SIZE];
     char send_data[BUFF_SIZE];
+    struct Client *client = NULL;
     while (1)
     {
         ret = recv(connfd, buffer, 256, 0);
         if (ret <= 0)
         {
-            // close
+            // logout and close thread
+            logout(client);
             break;
         }
         else
@@ -123,6 +125,7 @@ void *handleThread(void *arg)
 
                             struct Client *newClient = create(id, client_ip, client_port);
                             add(&clientList, newClient);
+                            client = newClient;
                             login(newClient);
                             saveAll(clientList);
 
@@ -131,7 +134,32 @@ void *handleThread(void *arg)
                         }
                         else if (strstr(command, "SI ") == command)
                         {
-                            // Todo sign in
+                            uint32_t clientID = 0;
+                            char clientIP[201];
+                            memset(clientIP, '\0', 201);
+                            sscanf(buffer, "SI %u %200s", &clientID, clientIP);
+                            clientIP[200] = '\0';
+                            client = find(clientList, clientID);
+                            if (client != NULL)
+                            {
+                                if (client->isLogin == 1)
+                                {
+                                    sprintf(buffer, "212");
+                                }
+                                else
+                                {
+                                    pthread_mutex_lock(&loginMutex);
+                                    login(client);
+                                    update(client, clientIP);
+                                    pthread_mutex_unlock(&loginMutex);
+                                    sprintf(buffer, "110");
+                                }
+                            }
+                            else
+                            {
+                                sprintf(buffer, "210");
+                            }
+                            send(connfd, buffer, 256, 0);
                         }
                         else if (strstr(command, "SH ") == command)
                         {
