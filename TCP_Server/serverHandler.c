@@ -6,9 +6,10 @@
 #include <time.h>
 
 #include "serverHandler.h"
+#include "Client.h"
 
-uint32_t generateClientID(int client_socket)
-{
+uint32_t generateClientID()
+{    
     uint32_t random_id = (uint32_t)rand();
     return random_id;
 }
