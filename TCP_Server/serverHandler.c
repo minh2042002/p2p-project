@@ -7,19 +7,6 @@
 
 #include "serverHandler.h"
 
-/// @brief create new socket
-/// @return a socket nnn)
-int createSocket()
-{
-    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_socket < 0)
-    {
-        perror("\nError socket(): ");
-        exit(EXIT_FAILURE);
-    }
-    return server_socket;
-}
-
 uint32_t generateClientID(int client_socket)
 {
     uint32_t random_id = arc4ramdom(); // Use arc4random()
