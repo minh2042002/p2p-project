@@ -141,3 +141,19 @@ int readAndSendFile(int client_socket, char *file_path)
     fclose(file);
     return 1;
 }
+
+void shareFile(int socket) {
+
+}
+
+void cancelShareFile(int socket) {
+
+}
+
+void findFile(int socket) {
+
+}
+
+void downloadFile(int socket) {
+    
+}

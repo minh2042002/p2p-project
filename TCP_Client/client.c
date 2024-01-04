@@ -59,7 +59,7 @@ void *connectServerThread(void *arg)
     pthread_detach(pthread_self());
     struct ServerInfo *serverInfo = (struct ServerInfo *)arg;
     int client_socket = createSocket();
-    connectServer(client_socket, serverInfo->ip, serverInfo->port);
+    connectSocket(client_socket, serverInfo->ip, serverInfo->port);
     uint32_t id = getID(); // kiểm tra client có id chưa. -1
     if (id == -1)
     {
