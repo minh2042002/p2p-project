@@ -5,8 +5,8 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <pthread.h>
-#include "../common/socketp2p.h";
-#include "Client.h";
+#include "../common/socketp2p.h"
+#include "Client.h"
 
 #define BUFF_SIZE 256
 void *handleThread(void *);

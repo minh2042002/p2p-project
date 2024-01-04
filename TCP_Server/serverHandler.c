@@ -9,7 +9,7 @@
 
 uint32_t generateClientID(int client_socket)
 {
-    uint32_t random_id = arc4ramdom(); // Use arc4random()
+    uint32_t random_id = (uint32_t)rand();
     return random_id;
 }
 
