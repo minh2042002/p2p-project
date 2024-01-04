@@ -1,4 +1,5 @@
 #include "Client.h"
+#include <arpa/inet.h>
 
 struct Client *create(uint32_t id, char *ip, int port)
 {
@@ -52,9 +53,6 @@ struct Client *find(struct Client *head, uint32_t id)
 
 void deleteByID(struct Client **head, uint32_t id)
 {
-    if (id == NULL)
-        return;
-
     struct Client *delClient = find(*head, id);
     if (delClient == NULL)
         return;
@@ -147,7 +145,7 @@ void loadFromFile(struct Client **head)
         client->next = NULL;
         client->prev = NULL;
 
-        addClient(head, client);
+        add(head, client);
     }
 
     fclose(file);

@@ -15,4 +15,16 @@ struct Client
     struct Client *prev;
 };
 
+struct Client *create(uint32_t id, char *ip, int port);
+void add(struct Client **head, struct Client *newClient);
+struct Client *find(struct Client *head, uint32_t id);
+void deleteByID(struct Client **head, uint32_t id);
+void update(struct Client *client, const char *newIP);
+void login(struct Client *client);
+void logout(struct Client *client);
+void saveAll(struct Client *head);
+void loadFromFile(struct Client **head);
+int count(struct Client *head);
+
+
 #endif
