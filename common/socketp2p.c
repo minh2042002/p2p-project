@@ -1,6 +1,6 @@
-#include <arpa/inet.h>
 #include <stdlib.h>
-#include "socketp2p.h";
+#include <stdio.h>
+#include "socketp2p.h"
 
 /// @brief create new socket
 /// @return a socket descriptor return -1 if create fail)

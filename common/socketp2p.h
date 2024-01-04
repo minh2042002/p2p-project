@@ -1,5 +1,6 @@
 #ifndef SOCKET_P2P_H
 #define SOCKET_P2P_H
+#include <arpa/inet.h>
 int createSocket();
 void connectSocket(int client_socket, char *server_ip, int port_number);
 void bindSocket(int server_socket, int port_number);
