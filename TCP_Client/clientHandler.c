@@ -64,7 +64,7 @@ void login(int socket, uint32_t id, int port)
     char data[250];
 
     // request send protocol login with format "SI <ID> <LISTEN_PORT>"
-    sprintf(buffer, "SI %u %d", id, port);
+    sprintf(buffer, "SI %u %d\r\n", id, port);
     send(socket, buffer, 256, 0);
 
     bytes_received = recv(socket, buffer, 256, 0);
@@ -83,14 +83,22 @@ void login(int socket, uint32_t id, int port)
     else if (status == 211)
     {
         printf("Unsignuped!");
+        exit(EXIT_FAILURE);
+    }
+    else if (status == 212)
+    {
+        printf("Login yet!");
+        exit(EXIT_FAILURE);
     }
     else if (status == 300)
     {
         printf("Protocol is wrong!");
+        exit(EXIT_FAILURE);
     }
     else
     {
         perror("An unknown error");
+        exit(EXIT_FAILURE);
     }
 }
 
