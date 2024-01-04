@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
         // connect with a client
         *connfd = acceptSocket(server_sock, (struct sockaddr *)&client_addr, &client_len);
         printf("[+] Đã kết nối với %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-        pthread_create(&tid, NULL, handleThread, connfd);
+        pthread_create(&tid, NULL, &handleThread, (void *)connfd);
     }
 
     close(server_sock);
