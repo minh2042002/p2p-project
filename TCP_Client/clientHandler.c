@@ -6,18 +6,20 @@
 
 #include "clientHandler.h"
 
+#define BUFF_SIZE 256
+
 void signup(int socket)
 {
-    char buffer[256];
+    char buffer[BUFF_SIZE];
     int bytes_received;
     int status;
     uint32_t id;
 
     // request send protocol signup with format "SU"
     sprintf(buffer, "SU\r\n");
-    send(socket, buffer, 256, 0);
+    send(socket, buffer, BUFF_SIZE, 0);
 
-    bytes_received = recv(socket, buffer, 256, 0);
+    bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
     if (bytes_received == 0)
     {
         perror("An error occurred!");
@@ -59,16 +61,16 @@ void signup(int socket)
 
 void login(int socket, uint32_t id, int port)
 {
-    char buffer[256];
+    char buffer[BUFF_SIZE];
     int bytes_received;
     int status;
     char data[250];
 
     // request send protocol login with format "SI <ID> <LISTEN_PORT>"
     sprintf(buffer, "SI %u %d\r\n", id, port);
-    send(socket, buffer, 256, 0);
+    send(socket, buffer, BUFF_SIZE, 0);
 
-    bytes_received = recv(socket, buffer, 256, 0);
+    bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
     if (bytes_received == 0)
     {
         perror("An error occurred!");
@@ -103,20 +105,21 @@ void login(int socket, uint32_t id, int port)
     }
 }
 
-void registerShareFile(int socket, uint32_t id, char *file_name)
+int registerShareFile(int socket, uint32_t id, char *file_name)
 {
-    char buffer[256];
+    char buffer[BUFF_SIZE];
     int bytes_received;
     int status;
 
     // request send protocol register share file
     sprintf(buffer, "SH %u %s", id, file_name);
-    send(socket, buffer, 256, 0);
+    send(socket, buffer, BUFF_SIZE, 0);
 
-    bytes_received = recv(socket, buffer, 256, 0);
-    if (bytes_received == 0) {
+    bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
+    if (bytes_received == 0)
+    {
         perror("An error occurred!");
-        exit(EXIT_FAILURE);
+        return 0;
     }
 
     buffer[bytes_received] = '\0';
@@ -124,6 +127,7 @@ void registerShareFile(int socket, uint32_t id, char *file_name)
     if (status == 120)
     {
         printf("Register share file is success.");
+        return 1;
     }
     else if (status == 300)
     {
@@ -131,60 +135,45 @@ void registerShareFile(int socket, uint32_t id, char *file_name)
     }
     else
     {
-        perror("An unknown error");
+        perror("An unknown error!");
     }
+
+    return 0;
 }
 
-int readAndSendFile(int client_socket, char *file_path)
+int cancelShareFile(int socket, uint32_t id, char *file_name)
 {
-    char buffer[256];
+    char buffer[BUFF_SIZE];
     int bytes_received;
-    int file_size;
+    int status;
 
-    FILE *file = fopen(file_path, "rb");
-    if (file == NULL)
+    sprintf(buffer, "DF %u %s", id, file_name);
+    send(socket, buffer, BUFF_SIZE, 0);
+
+    bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
+    if (bytes_received == 0)
     {
-        perror("Error");
+        perror("An error occurred!");
         return 0;
     }
 
-    fseek(file, 0, SEEK_END);
-    file_size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    char *token = strtok(file_path, "/");
-
-    // Loop to find the last file name in the path
-    char *file_name = NULL;
-    while (token != NULL)
+    buffer[bytes_received] = '\0';
+    sscanf(buffer, "%d", &status);
+    if (status == 150)
     {
-        file_name = token; // Lưu giá trị token vào fileName
-        token = strtok(NULL, "/");
+        printf("Successfully unsubscribed file sharing");
+        return 1;
+    }
+    else if (status == 300)
+    {
+        printf("Protocol is wrong!");
+    }
+    else
+    {
+        perror("An unknown error!");
     }
 
-    // request send file with format " <name_file> <file_size> "
-    sprintf(buffer, "%s %d", file_name, file_size);
-    send(client_socket, buffer, 256, 0);
-
-    recv(client_socket, buffer, bytes_received, 0);
-
-    // read file and send file
-    while (!feof(file))
-    {
-        bytes_received = fread(buffer, 1, sizeof(buffer), file);
-        send(client_socket, buffer, bytes_received, 0);
-    }
-
-    fclose(file);
-    return 1;
-}
-
-void shareFile(int socket)
-{
-}
-
-void cancelShareFile(int socket)
-{
+    return 0;
 }
 
 void findFile(int socket)
@@ -193,4 +182,133 @@ void findFile(int socket)
 
 void downloadFile(int socket)
 {
+}
+
+void saveFile(char *path)
+{
+    FILE *file = fopen("index.txt", "r+");
+    if (file == NULL)
+    {
+        perror("Cannot open file index.txt!");
+        return;
+    }
+
+    FILE *tempFile = tmpfile();
+    if (tempFile == NULL)
+    {
+        perror("Cannot open temp file!");
+        fclose(file);
+        return;
+    }
+
+    char line[BUFF_SIZE];
+    char pathInFile[BUFF_SIZE];
+    int exists = 0;
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%[^\n]", pathInFile))
+        {
+            if (strcmp(path, pathInFile) == 0)
+            {
+                exists = 1;
+            }
+        }
+
+        fprintf(tempFile, "%s", line);
+    }
+
+    if (exists)
+    {
+        printf("%s already exists in index.txt", path);
+        fclose(file);
+        fclose(tempFile);
+    }
+    else
+    {
+        snprintf(line, sizeof(line), "%s", path);
+        fprintf(tempFile, "%s", line);
+
+        fclose(file);
+        fclose(tempFile);
+
+        file = fopen("index.txt", "w");
+        if (file == NULL)
+        {
+            perror("Cannot open file index.txt!");
+            return;
+        }
+
+        rewind(tempFile);
+        char c;
+        while ((c = fgetc(tempFile)) != EOF)
+        {
+            fputc(c, file);
+        }
+
+        fclose(file);
+    }
+}
+
+void deleteFile(char *path)
+{
+    FILE *file = fopen("index.txt", "r+");
+    if (file == NULL)
+    {
+        perror("Cannot open file index.txt!");
+        return;
+    }
+
+    FILE *tempFile = tmpfile();
+    if (tempFile == NULL)
+    {
+        perror("Cannot open temp file!");
+        fclose(file);
+        return;
+    }
+
+    char line[BUFF_SIZE];
+    char pathInFile[BUFF_SIZE];
+    int exists = 0;
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%[^\n]", pathInFile))
+        {
+            if (strcmp(path, pathInFile) == 0)
+            {
+                exists = 1;
+            }
+            else
+            {
+                fprintf(tempFile, "%s", line);
+            }
+        }
+    }
+
+    fclose(file);
+    fclose(tempFile);
+
+    if (exists)
+    {
+        file = fopen("index.txt", "w");
+        if (file == NULL)
+        {
+            perror("Cannot open file index.txt!");
+            return;
+        }
+
+        rewind(tempFile);
+        char c;
+        while ((c = fgetc(tempFile)) != EOF)
+        {
+            fputc(c, file);
+        }
+
+        fclose(file);
+    }
+    else
+    {
+        printf("%s is not exists in index.txt", path);
+    }
 }
