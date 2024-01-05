@@ -8,6 +8,8 @@
 #include "serverHandler.h"
 #include "Client.h"
 
+#define BUFF_SIZE 256
+
 uint32_t generateClientID()
 {
     uint32_t random_id = (uint32_t)rand();
@@ -17,7 +19,7 @@ uint32_t generateClientID()
 uint32_t findClient(char *ip_address, uint16_t port)
 {
     FILE *file;
-    char line[256];
+    char line[BUFF_SIZE];
     char search_string;
 }
 
@@ -26,7 +28,7 @@ int deleteIndex(uint32_t client_id, const char *file_name)
     FILE *file = fopen("index.txt", "r+"); // Mở file để đọc và ghi
     if (file == NULL)
     {
-        perror("Không thể mở file");
+        perror("Cannot open file index.txt!");
         return 2; // Trả về 2 để biểu thị không thể mở file
     }
 
@@ -39,11 +41,11 @@ int deleteIndex(uint32_t client_id, const char *file_name)
     }
 
     // Kiểm tra từng dòng trong file
-    char line[256];
+    char line[BUFF_SIZE];
     uint32_t id;
     char ip[16];
     uint16_t port;
-    char filename[256];
+    char filename[BUFF_SIZE];
 
     int existFile = 0;
     while (fgets(line, sizeof(line), file) != NULL)
@@ -71,7 +73,7 @@ int deleteIndex(uint32_t client_id, const char *file_name)
     if (existFile)
     {
         // Mở file gốc để ghi lại nội dung từ tempFile
-        file = fopen(filename, "w");
+        file = fopen("index.txt", "w");
         if (file == NULL)
         {
             perror("Không thể mở file");
@@ -114,11 +116,11 @@ int updateIndex(uint32_t client_id, char *client_ip, uint16_t client_port, char 
     }
 
     // Kiểm tra từng dòng trong file
-    char line[256];
+    char line[BUFF_SIZE];
     uint32_t id;
-    char ip[256];
+    char ip[BUFF_SIZE];
     uint16_t port;
-    char filename[256];
+    char filename[BUFF_SIZE];
 
     int recordUpdated = 0;
     while (fgets(line, sizeof(line), file) != NULL)
@@ -146,7 +148,7 @@ int updateIndex(uint32_t client_id, char *client_ip, uint16_t client_port, char 
     fclose(tempFile);
 
     // Mở file gốc để ghi lại nội dung từ tempFile
-    file = fopen(filename, "w");
+    file = fopen("index.txt", "w");
     if (file == NULL)
     {
         perror("Không thể mở file");
@@ -188,7 +190,7 @@ int getInfoClient(int socket, char *client_ip, uint16_t *client_port)
 /// @param buffer information
 void write_log(uint16_t port, char *ip_address, const char *buffer)
 {
-    char log_entry[256];
+    char log_entry[BUFF_SIZE];
     sprintf(log_entry, "[%s:%d]$%s", ip_address, port, buffer);
 
     FILE *log_file = fopen("log.txt", "a");
