@@ -142,18 +142,18 @@ void *handleThread(void *arg)
                             client = find(clientList, clientID);
                             if (client != NULL)
                             {
+                                pthread_mutex_lock(&loginMutex);
                                 if (client->isLogin == 1)
                                 {
                                     sprintf(buffer, "212");
                                 }
                                 else
                                 {
-                                    pthread_mutex_lock(&loginMutex);
                                     login(client);
                                     update(client, clientIP);
-                                    pthread_mutex_unlock(&loginMutex);
                                     sprintf(buffer, "110");
                                 }
+                                pthread_mutex_unlock(&loginMutex);
                             }
                             else
                             {
