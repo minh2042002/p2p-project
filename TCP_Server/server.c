@@ -107,30 +107,28 @@ void *handleThread(void *arg)
                         command[l - 1] = '\0';
                         if (strcmp(command, "SU") == 0)
                         {
-                            // Get IP and PORT of client from connfd
-                            struct sockaddr_in peer_addr;
-                            socklen_t peer_len = sizeof(peer_addr);
-                            if (getpeername(connfd, (struct sockaddr *)&peer_addr, &peer_len) == -1)
+                            char client_ip[BUFF_SIZE];
+                            uint16_t client_port;
+                            int succes = getInfoClient(connfd, client_ip, &client_port);
+
+                            if (succes)
                             {
-                                perror("Unable to get client information!");
-                                close(connfd);
-                                exit(EXIT_FAILURE);
+                                uint32_t id = generateClientID();
+
+                                struct Client *newClient = create(id, client_ip, client_port);
+                                add(&clientList, newClient);
+                                client = newClient;
+                                login(newClient);
+                                saveAll(clientList);
+
+                                sprintf(buffer, "%d - %u", 100, id);
+                                send(connfd, buffer, 256, 0);
                             }
-
-                            char client_ip[INET_ADDRSTRLEN];
-                            inet_ntop(AF_INET, &(peer_addr.sin_addr), client_ip, sizeof(client_ip));
-                            uint16_t client_port = ntohs(peer_addr.sin_port);
-
-                            uint32_t id = generateClientID();
-
-                            struct Client *newClient = create(id, client_ip, client_port);
-                            add(&clientList, newClient);
-                            client = newClient;
-                            login(newClient);
-                            saveAll(clientList);
-
-                            sprintf(buffer, "%d - %u", 100, id);
-                            send(connfd, buffer, 256, 0);
+                            else
+                            {
+                                sprintf(buffer, "%d", 300);
+                                send(connfd, buffer, 256, 0);
+                            }
                         }
                         else if (strstr(command, "SI ") == command)
                         {
@@ -152,6 +150,7 @@ void *handleThread(void *arg)
                                     login(client);
                                     update(client, clientIP);
                                     sprintf(buffer, "110");
+                                    saveAll(clientList);
                                 }
                                 pthread_mutex_unlock(&loginMutex);
                             }
@@ -163,11 +162,79 @@ void *handleThread(void *arg)
                         }
                         else if (strstr(command, "SH ") == command)
                         {
-                            // Todo share file
+                            char client_ip[BUFF_SIZE];
+                            uint16_t client_port;
+                            getInfoClient(connfd, client_ip, &client_port);
+
+                            char type[3];
+                            uint32_t id;
+                            char filename[BUFF_SIZE];
+                            if (sscanf(command, "%2s %u %s", type, &id, filename) == 3)
+                            {
+                                struct Client *existClient = find(clientList, id);
+                                char client_ip[BUFF_SIZE];
+                                uint16_t client_port;
+
+                                strcpy(client_ip, inet_ntoa(existClient->_addr.sin_addr));
+                                client_port = ntohs(existClient->_addr.sin_port);
+                                update(existClient, client_ip);
+                                saveAll(clientList);
+                                int succes = updateIndex(id, client_ip, client_port, filename);
+                                if (succes)
+                                {
+                                    sprintf(buffer, "%d", 120);
+                                    send(connfd, buffer, 256, 0);
+                                }
+                                else
+                                {
+                                    sprintf(buffer, "%d", 300);
+                                    send(connfd, buffer, 256, 0);
+                                }
+                            }
+                            else
+                            {
+                                sprintf(buffer, "%d", 300);
+                                send(connfd, buffer, 256, 0);
+                            }
                         }
                         else if (strstr(command, "DF") == command)
                         {
-                            // Todo unshare file
+                            char client_ip[BUFF_SIZE];
+                            uint16_t client_port;
+                            getInfoClient(connfd, client_ip, &client_port);
+
+                            char type[3];
+                            uint32_t id;
+                            char filename[BUFF_SIZE];
+                            if (sscanf(command, "%2s %u %s", type, &id, filename) == 3)
+                            {
+                                int succes = deleteIndex(id, filename);
+                                if (succes == 1)
+                                {
+                                    sprintf(buffer, "%d", 150);
+                                    send(connfd, buffer, 256, 0);
+                                }
+                                else if (succes == 0)
+                                {
+                                    sprintf(buffer, "%d", 250);
+                                    send(connfd, buffer, 256, 0);
+                                }
+                                else
+                                {
+                                    sprintf(buffer, "%d", 300);
+                                    send(connfd, buffer, 256, 0);
+                                }
+                            }
+                            else
+                            {
+                                sprintf(buffer, "%d", 300);
+                                send(connfd, buffer, 256, 0);
+                            }
+                        }
+                        else
+                        {
+                            sprintf(buffer, "%d", 300);
+                            send(connfd, buffer, 256, 0);
                         }
                         l = -1;
                     }

@@ -81,7 +81,14 @@ void *connectServerThread(void *arg)
         }
         if (function == 1)
         {
-            shareFile(client_socket);
+            char path[BUFF_SIZE];
+            char filename[BUFF_SIZE];
+
+            printf("Nhap duong dan file: ");
+            scanf("%s", path);
+
+            getFileName(path, filename);
+            registerShareFile(client_socket, id, filename);
         }
         else if (function == 2)
         {
