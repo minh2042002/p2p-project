@@ -51,6 +51,7 @@ void signup(int socket)
         }
         else
         {
+            printf("%s\n", buffer);
             perror("An unknown error");
         }
     }
