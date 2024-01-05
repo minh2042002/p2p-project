@@ -81,7 +81,8 @@ void *connectServerThread(void *arg)
         }
         if (function == 1)
         {
-            
+            printf("Nhap duong dan file: ");
+            printf("")
             registerShareFile(client_socket, id, file_name);
         }
         else if (function == 2)
