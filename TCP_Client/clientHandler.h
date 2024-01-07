@@ -12,5 +12,6 @@ void shareFile(int socket);
 void cancelShareFile(int socket);
 void findFile(int socket);
 void downloadFile(int socket);
+void sendFile(int socket, char *filePath);
 
 #endif

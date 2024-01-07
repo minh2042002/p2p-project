@@ -18,6 +18,7 @@ int listen_port;
 int server_port;
 
 void *listenThread(void *);
+void *sendFileThread(void *);
 void *requestThread(void *);
 void *connectServerThread(void *);
 int main(int argc, char *argv[])
@@ -111,22 +112,32 @@ void *listenThread(void *arg)
 
     pthread_detach(pthread_self());
     int port = *((int *)arg);
-
-    int l = 0, ret = 0;
-    char command[BUFF_SIZE];
-    char send_data[BUFF_SIZE];
-    char buffer[BUFF_SIZE];
     pthread_t tid;
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     int listen_sock = createSocket();
     bindSocket(listen_sock, port);
     listenSocket(listen_sock, 5);
-    int conn_sock;
+    int *conn_sock;
     while (1)
     {
-        conn_sock = acceptSocket(listen_sock, (struct sockaddr *)&client_addr, &client_len);
-        ret = recv(listen_sock, buffer, 256, 0);
+        conn_sock = malloc(sizeof(int));
+        *conn_sock = acceptSocket(listen_sock, (struct sockaddr *)&client_addr, &client_len);
+        printf("[+] Đã kết nối với %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        pthread_create(&tid, NULL, &sendFileThread, (void *)conn_sock);
+    }
+}
+void *sendFileThread(void *arg)
+{
+    pthread_detach(pthread_self());
+    int conn_sock = *((int *)arg);
+    int l = 0, ret = 0;
+    char command[BUFF_SIZE];
+    char send_data[BUFF_SIZE];
+    char buffer[BUFF_SIZE];
+    while (1)
+    {
+        ret = recv(conn_sock, buffer, 256, 0);
         if (ret <= 0)
         {
             // close
@@ -164,7 +175,10 @@ void *listenThread(void *arg)
                         command[l - 1] = '\0';
                         if (strcmp(command, "DL") == 0)
                         {
-                            // Todo: Xử lý truyền file
+                            // Sendfile
+                            char fileName[100];
+                            sscanf(command, "DL %s", fileName);
+                            sendFile(conn_sock, fileName);
                         }
                         l = -1;
                     }
