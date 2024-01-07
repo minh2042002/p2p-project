@@ -1,7 +1,7 @@
 #include "Client.h"
 #include <arpa/inet.h>
 
-struct Client *create(uint32_t id, char *ip, int port)
+struct Client *create(uint32_t id, char *ip, uint16_t port)
 {
     struct Client *client = (struct Client *)malloc(sizeof(struct Client));
     if (client == NULL)

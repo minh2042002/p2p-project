@@ -15,7 +15,7 @@ struct Client
     struct Client *prev;
 };
 
-struct Client *create(uint32_t id, char *ip, int port);
+struct Client *create(uint32_t id, char *ip, uint16_t port);
 void add(struct Client **head, struct Client *newClient);
 struct Client *find(struct Client *head, uint32_t id);
 void deleteByID(struct Client **head, uint32_t id);

@@ -21,6 +21,12 @@ void *listenThread(void *);
 void *sendFileThread(void *);
 void *requestThread(void *);
 void *connectServerThread(void *);
+
+void RegisterShareFileHandler(int client_socket, uint32_t id);
+void CancelShareFileHandler(int client_socket, uint32_t id);
+void FindFileHandler(int client_socket, uint32_t id);
+void DownloadFileHandler(int client_socket, uint32_t id);
+
 int main(int argc, char *argv[])
 {
     if (argc != 4)
@@ -82,19 +88,19 @@ void *connectServerThread(void *arg)
         }
         if (function == 1)
         {
-            shareFile(client_socket);
+            RegisterShareFileHandler(client_socket, id);
         }
         else if (function == 2)
         {
-            cancelShareFile(client_socket);
+            CancelShareFileHandler(client_socket, id);
         }
         else if (function == 3)
         {
-            findFile(client_socket);
+            FindFileHandler(client_socket, id);
         }
         else if (function == 4)
         {
-            downloadFile(client_socket);
+            DownloadFileHandler(client_socket, id);
         }
         else if (function == 5)
         {
@@ -187,4 +193,44 @@ void *sendFileThread(void *arg)
         }
     }
     close(conn_sock);
+}
+
+void RegisterShareFileHandler(int client_socket, uint32_t id)
+{
+    char path[BUFF_SIZE];
+    char filename[BUFF_SIZE];
+
+    printf("Nhap duong dan file muon chia se: ");
+    scanf("%s", path);
+
+    getFileName(path, filename);
+    int succes = registerShareFile(client_socket, id, filename);
+    if (succes)
+    {
+        saveFile(path);
+    }
+}
+
+void CancelShareFileHandler(int client_socket, uint32_t id)
+{
+    char path[BUFF_SIZE];
+    char filename[BUFF_SIZE];
+
+    printf("Nhap duong dan file muon huy chia se: ");
+    scanf("%s", path);
+
+    getFileName(path, filename);
+    int succes = cancelShareFile(client_socket, id, filename);
+    if (succes)
+    {
+        deleteFile(path);
+    }
+}
+
+void FindFileHandler(int client_socket, uint32_t id)
+{
+}
+
+void DownloadFileHandler(int client_socket, uint32_t id)
+{
 }

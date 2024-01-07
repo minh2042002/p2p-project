@@ -5,20 +5,22 @@
 #include <stdint.h>
 #include <sys/stat.h>
 #include "clientHandler.h"
+
+#define BUFF_SIZE 256
 #include "socketp2p.h"
 
 void signup(int socket)
 {
-    char buffer[256];
+    char buffer[BUFF_SIZE];
     int bytes_received;
     int status;
     uint32_t id;
 
     // request send protocol signup with format "SU"
     sprintf(buffer, "SU\r\n");
-    send(socket, buffer, 256, 0);
+    send(socket, buffer, BUFF_SIZE, 0);
 
-    bytes_received = recv(socket, buffer, 256, 0);
+    bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
     if (bytes_received == 0)
     {
         perror("An error occurred!");
@@ -52,6 +54,7 @@ void signup(int socket)
         }
         else
         {
+            printf("%s\n", buffer);
             perror("An unknown error");
         }
     }
@@ -59,16 +62,16 @@ void signup(int socket)
 
 void login(int socket, uint32_t id, int port)
 {
-    char buffer[256];
+    char buffer[BUFF_SIZE];
     int bytes_received;
     int status;
     char data[250];
 
     // request send protocol login with format "SI <ID> <LISTEN_PORT>"
     sprintf(buffer, "SI %u %d\r\n", id, port);
-    send(socket, buffer, 256, 0);
+    send(socket, buffer, BUFF_SIZE, 0);
 
-    bytes_received = recv(socket, buffer, 256, 0);
+    bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
     if (bytes_received == 0)
     {
         perror("An error occurred!");
@@ -103,16 +106,75 @@ void login(int socket, uint32_t id, int port)
     }
 }
 
-void registerShareFile(int socket, uint32_t id, char *file_name)
+int registerShareFile(int socket, uint32_t id, char *file_name)
 {
+    char buffer[BUFF_SIZE];
+    int bytes_received;
+    int status;
+
+    // request send protocol register share file
+    sprintf(buffer, "SH %u %s", id, file_name);
+    send(socket, buffer, BUFF_SIZE, 0);
+
+    bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
+    if (bytes_received == 0)
+    {
+        perror("An error occurred!");
+        return 0;
+    }
+
+    buffer[bytes_received] = '\0';
+    sscanf(buffer, "%d", &status);
+    if (status == 120)
+    {
+        printf("Register share file is success.");
+        return 1;
+    }
+    else if (status == 300)
+    {
+        printf("Protocol is wrong!");
+    }
+    else
+    {
+        perror("An unknown error!");
+    }
+
+    return 0;
 }
 
-void shareFile(int socket)
+int cancelShareFile(int socket, uint32_t id, char *file_name)
 {
-}
+    char buffer[BUFF_SIZE];
+    int bytes_received;
+    int status;
 
-void cancelShareFile(int socket)
-{
+    sprintf(buffer, "DF %u %s", id, file_name);
+    send(socket, buffer, BUFF_SIZE, 0);
+
+    bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
+    if (bytes_received == 0)
+    {
+        perror("An error occurred!");
+        return 0;
+    }
+
+    buffer[bytes_received] = '\0';
+    sscanf(buffer, "%d", &status);
+    if (status == 150)
+    {
+        printf("Successfully unsubscribed file sharing");
+        return 1;
+    }
+    else if (status == 300)
+    {
+        printf("Protocol is wrong!");
+    }
+    else
+    {
+        perror("An unknown error!");
+    }
+
+    return 0;
 }
 
 void findFile(int socket)
