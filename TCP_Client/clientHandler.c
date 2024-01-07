@@ -5,9 +5,9 @@
 #include <stdint.h>
 #include <sys/stat.h>
 #include "clientHandler.h"
+#include "../common/socketp2p.h"
 
 #define BUFF_SIZE 256
-#include "socketp2p.h"
 
 void signup(int socket)
 {
@@ -74,7 +74,7 @@ void login(int socket, uint32_t id, int port)
     bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
     if (bytes_received == 0)
     {
-        perror("An error occurred!");
+        perror("An error occurred!\n");
         exit(EXIT_FAILURE);
     }
 
@@ -82,26 +82,26 @@ void login(int socket, uint32_t id, int port)
     sscanf(buffer, "%d", &status);
     if (status == 110)
     {
-        printf("Login is success.");
+        printf("Login is success.\n");
     }
     else if (status == 211)
     {
-        printf("Unsignuped!");
+        printf("Unsignuped!\n");
         exit(EXIT_FAILURE);
     }
     else if (status == 212)
     {
-        printf("Login yet!");
+        printf("Login yet!\n");
         exit(EXIT_FAILURE);
     }
     else if (status == 300)
     {
-        printf("Protocol is wrong!");
+        printf("Protocol is wrong!\n");
         exit(EXIT_FAILURE);
     }
     else
     {
-        perror("An unknown error");
+        perror("An unknown error\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -113,13 +113,14 @@ int registerShareFile(int socket, uint32_t id, char *file_name)
     int status;
 
     // request send protocol register share file
-    sprintf(buffer, "SH %u %s", id, file_name);
+    sprintf(buffer, "SH %u %s\r\n", id, file_name);
+    printf("%s\n", buffer);
     send(socket, buffer, BUFF_SIZE, 0);
 
     bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
     if (bytes_received == 0)
     {
-        perror("An error occurred!");
+        perror("An error occurred!\n");
         return 0;
     }
 
@@ -127,16 +128,16 @@ int registerShareFile(int socket, uint32_t id, char *file_name)
     sscanf(buffer, "%d", &status);
     if (status == 120)
     {
-        printf("Register share file is success.");
+        printf("Register share file is success.\n");
         return 1;
     }
     else if (status == 300)
     {
-        printf("Protocol is wrong!");
+        printf("Protocol is wrong!\n");
     }
     else
     {
-        perror("An unknown error!");
+        perror("An unknown error!\n");
     }
 
     return 0;
@@ -154,7 +155,7 @@ int cancelShareFile(int socket, uint32_t id, char *file_name)
     bytes_received = recv(socket, buffer, BUFF_SIZE, 0);
     if (bytes_received == 0)
     {
-        perror("An error occurred!");
+        perror("An error occurred!\n");
         return 0;
     }
 
@@ -162,16 +163,16 @@ int cancelShareFile(int socket, uint32_t id, char *file_name)
     sscanf(buffer, "%d", &status);
     if (status == 150)
     {
-        printf("Successfully unsubscribed file sharing");
+        printf("Successfully unsubscribed file sharing\n");
         return 1;
     }
     else if (status == 300)
     {
-        printf("Protocol is wrong!");
+        printf("Protocol is wrong!\n");
     }
     else
     {
-        perror("An unknown error!");
+        perror("An unknown error!\n");
     }
 
     return 0;
@@ -187,7 +188,7 @@ void downloadFile(int socket)
     char fileName[100];
     char clientIP[9];
     char buffer[4096];
-    printf("Input:<#fileName> <#client_IP> <#client_PORT>\n");
+    printf("Input:<#fileName> <#Supplier_IP> <#Supplier_PORT>\n");
     int r = scanf("%s %s %d", fileName, clientIP, &port);
     if (r != 3)
     {
@@ -219,7 +220,7 @@ void downloadFile(int socket)
         buffer[ret] = '\0';
         if (strstr(buffer, "140") == buffer)
         {
-            sscanf(buffer, "140 %ld", &fileSize);
+            sscanf(buffer, "140 %lld", &fileSize);
         }
         else if (strstr(buffer, "240") == buffer)
         {
@@ -258,7 +259,7 @@ void sendFile(int socket, char *filePath)
     {
         long long fileSize = getFileSize(filePath);
         memset(buffer, '\0', 4096);
-        sprintf(buffer, "140 %ld", fileSize);
+        sprintf(buffer, "140 %lld", fileSize);
         send(socket, buffer, 4096, 0);
         memset(buffer, '\0', 4096);
         size_t bytesRead;
@@ -269,3 +270,9 @@ void sendFile(int socket, char *filePath)
         fclose(file);
     }
 }
+void saveFile(char *path){
+
+};
+void deleteFile(char *path){
+
+};
