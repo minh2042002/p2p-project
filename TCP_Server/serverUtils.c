@@ -188,10 +188,10 @@ int getInfoClient(int socket, char *client_ip, uint16_t *client_port)
 /// @brief write log to file
 /// @param ip_address contain ip address and port of client
 /// @param buffer information
-void write_log(uint16_t port, char *ip_address, const char *buffer)
+void write_log(uint16_t *port, char *ip_address, const char *buffer)
 {
     char log_entry[BUFF_SIZE];
-    sprintf(log_entry, "[%s:%d]$%s", ip_address, port, buffer);
+    sprintf(log_entry, "[%s:%u]$%s", ip_address, *port, buffer);
 
     FILE *log_file = fopen("log.txt", "a");
     if (log_file)
