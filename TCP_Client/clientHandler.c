@@ -258,7 +258,6 @@ int registerShareFile(int socket, uint32_t id, char *file_name)
 
     // request send protocol register share file
     sprintf(buffer, "SH %u %s\r\n", id, file_name);
-    printf("%s\n", buffer);
     send(socket, buffer, BUFF_SIZE, 0);
 
     bytes_received = recv(socket, buffer, BUFF_SIZE, 0);

@@ -9,11 +9,21 @@
 #define BUFF_SIZE 256
 struct Client *clientList = NULL;
 
+/**
+ * @brief load client info from client file
+ */
 void loadClients()
 {
     loadFromFile(&clientList);
 }
 
+/**
+ * @brief Handle registration requests from clients
+ * @param connfd sock_fd
+ * @param client client list
+ * @param command command
+ * @param loginStatus status of login (to change status of login)
+ */
 void SignUpHandler(int connfd, struct Client **client, char *command, int *loginStatus)
 {
     char buffer[BUFF_SIZE];
@@ -22,7 +32,6 @@ void SignUpHandler(int connfd, struct Client **client, char *command, int *login
     int clientListenPort;
     sscanf(command, "SU %d", &clientListenPort);
     int success = getInfoClient(connfd, client_ip, &client_port);
-    printf("%s", command);
     write_log(&client_port, client_ip, command);
 
     if (success)
@@ -68,6 +77,13 @@ void SignUpHandler(int connfd, struct Client **client, char *command, int *login
     }
 }
 
+/**
+ * @brief Handle login requests from clients
+ * @param connfd sock_fd
+ * @param client client list
+ * @param command command
+ * @param loginStatus status of login
+ */
 void SignInHandler(int connfd, struct Client **client, char *command, int *loginStatus)
 {
     char buffer[BUFF_SIZE];
@@ -105,6 +121,12 @@ void SignInHandler(int connfd, struct Client **client, char *command, int *login
     send(connfd, buffer, 256, 0);
 }
 
+/**
+ * @brief Handle register share file requests from clients
+ * @param connfd sock_fd
+ * @param command command
+ * @param loginStatus status of login
+ */
 void RegisterShareHandler(int connfd, char *command, int *loginStatus)
 {
     char buffer[BUFF_SIZE];
@@ -151,6 +173,12 @@ void RegisterShareHandler(int connfd, char *command, int *loginStatus)
     }
 }
 
+/**
+ * @brief Handle cancel register share file requests from clients
+ * @param connfd sock_fd
+ * @param command command
+ * @param loginStatus status of login
+ */
 void CancelShareHandler(int connfd, char *buffer, int *loginStatus)
 {
     char sendData[BUFF_SIZE];
@@ -195,6 +223,12 @@ void CancelShareHandler(int connfd, char *buffer, int *loginStatus)
     }
 }
 
+/**
+ * @brief Handle find file requests from clients
+ * @param connfd sock_fd
+ * @param command command
+ * @param loginStatus status of login
+ */
 void FindShareFileHandler(int connfd, char *command, int *loginStatus)
 {
     char buffer[BUFF_SIZE];
@@ -218,18 +252,16 @@ void FindShareFileHandler(int connfd, char *command, int *loginStatus)
 
     char line[BUFF_SIZE];
     int count = 0;
-    FILE *file = fopen("index.txt", "r+"); // Mở file để đọc
+    FILE *file = fopen("index.txt", "r+");
     if (file == NULL)
     {
-        perror("Không thể mở file");
+        perror("ERROR: Can not open file!\n");
         exit(EXIT_FAILURE);
     }
     while (fgets(line, sizeof(line), file) != NULL)
     {
-        // Sử dụng sscanf để đọc từng trường từ dòng
         if (sscanf(line, "%u %15s %d %[^\n]", &id, ip, &port, fileNameTmp) == 4)
         {
-            // So sánh id và filename với giá trị mong muốn
             if (strcmp(fileName, fileNameTmp) == 0)
             {
                 struct Client *clientTmp = find(clientList, id);
@@ -262,6 +294,14 @@ void FindShareFileHandler(int connfd, char *command, int *loginStatus)
         send(connfd, buffer, BUFF_SIZE, 0);
     }
 }
+
+/**
+ * @brief Check if this file is shared by a client with this ip and port
+ * @param fileName file name
+ * @param clientIP client's ip
+ * @param clientPort client's port
+ * @return 1 if true, 0 if false
+ */
 int checkFile(char *fileName, char *clientIP, int clientPort)
 {
     char fileNameTmp[50];
@@ -270,18 +310,16 @@ int checkFile(char *fileName, char *clientIP, int clientPort)
     int port;
     char line[BUFF_SIZE];
     int count = 0;
-    FILE *file = fopen("index.txt", "r+"); // Mở file để đọc
+    FILE *file = fopen("index.txt", "r+");
     if (file == NULL)
     {
-        perror("Không thể mở file");
+        perror("ERROR: Can not open file!\n");
         exit(EXIT_FAILURE);
     }
     while (fgets(line, sizeof(line), file) != NULL)
     {
-        // Sử dụng sscanf để đọc từng trường từ dòng
         if (sscanf(line, "%u %15s %d %[^\n]", &id, ip, &port, fileNameTmp) == 4)
         {
-            // So sánh id và filename với giá trị mong muốn
             if (strcmp(fileName, fileNameTmp) == 0 && strcmp(clientIP, ip) == 0 && clientPort == port)
             {
                 struct Client *clientTmp = find(clientList, id);
@@ -295,6 +333,13 @@ int checkFile(char *fileName, char *clientIP, int clientPort)
     fclose(file);
     return 0;
 }
+
+/**
+ * @brief Handle the request from the client to check if this file is shared by the client with this ip and port
+ * @param connfd sock_fd
+ * @param command command
+ * @param loginStatus status of login
+ */
 void CheckFileHandler(int connfd, char *command, int *loginStatus)
 {
     char buffer[BUFF_SIZE];
@@ -325,6 +370,13 @@ void CheckFileHandler(int connfd, char *command, int *loginStatus)
     }
     send(connfd, buffer, BUFF_SIZE, 0);
 }
+
+/**
+ * @brief Handle the request remove file cannot be downloaded from index file
+ * @param connfd sock_fd
+ * @param command command
+ * @param loginStatus status of login
+ */
 void removeBugFile(int connfd, char *command, int *loginStatus)
 {
     char buffer[BUFF_SIZE];
