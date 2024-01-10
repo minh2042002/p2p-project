@@ -1,3 +1,2 @@
 bbb : bbb
 aaa : aaa
-exam.txt : exam.txt

@@ -8,6 +8,9 @@
 #include <unistd.h>
 #include "helper.h"
 #define BUFF_SIZE 256
+/**
+ * @brief get client's id from config file
+ */
 int getID()
 {
     char line[100];
@@ -21,10 +24,8 @@ int getID()
         return -1;
     }
 
-    // Đọc dòng từ file
     if (fgets(line, sizeof(line), file) != NULL)
     {
-        // In ra dòng đã đọc được
         id = strtoul(line, &endptr, 10);
         if (*endptr != '\0' && *endptr != '\n')
         {
@@ -36,12 +37,16 @@ int getID()
     {
         id = -1;
     }
-
-    // Đóng file sau khi đọc xong
     fclose(file);
     return id;
 }
 
+/**
+ * @brief get file name from file path
+ * @param path file's path
+ * @param filename buffer to store file name
+ *
+ */
 void getFileName(const char *path, char *filename)
 {
     // Find end location of '/'
@@ -61,56 +66,60 @@ void getFileName(const char *path, char *filename)
         strcpy(filename, path);
     }
 }
+
+/**
+ * @brief create file if file is not exist
+ * @param fileName file name
+ */
 void createFileIfNotExist(char *fileName)
 {
-    if (access(fileName, F_OK) != -1)
+    if (access(fileName, F_OK) == -1)
     {
-    }
-    else
-    {
-        printf("File chua ton tai, tao file...\n");
         int fileDescriptor = open(fileName, O_CREAT, 0644);
 
         if (fileDescriptor == -1)
         {
-            perror("Loi khi tao file");
+            perror("Error: can not create file! \n");
             exit(EXIT_FAILURE);
         }
         else
         {
-            close(fileDescriptor); // Đóng file sau khi tạo
+            close(fileDescriptor);
         }
     }
 };
+
+/**
+ * @brief save share file path in to index file
+ * @param path file's path
+ * @param fileName file name
+ */
 void saveFile(char *path, char *fileName)
 {
     createFileIfNotExist("index.txt");
-    FILE *file = fopen("index.txt", "r+"); // Mở file để đọc
+    FILE *file = fopen("index.txt", "r+");
     if (file == NULL)
     {
-        perror("Không thể mở file");
+        perror("ERROR: Can not open file!\n");
         exit(EXIT_FAILURE);
     }
 
-    FILE *tempFile = tmpfile(); // Mở một file tạm thời
+    FILE *tempFile = tmpfile();
     if (tempFile == NULL)
     {
-        perror("Không thể tạo file tạm thời");
+        perror("ERROR: Can not create temp file!\n");
         fclose(file);
         exit(EXIT_FAILURE);
     }
 
-    // Kiểm tra từng dòng trong file
     char line[BUFF_SIZE];
     char fileNameTmp[BUFF_SIZE];
     char filePath[BUFF_SIZE];
     int recordUpdated = 0;
     while (fgets(line, sizeof(line), file) != NULL)
     {
-        // Sử dụng sscanf để đọc từng trường từ dòng
         if (sscanf(line, "%s : %[^\n]", fileNameTmp, filePath) == 2)
         {
-            // So sánh id và filename với giá trị mong muốn
             if (strcmp(fileName, fileNameTmp) == 0)
             {
                 snprintf(line, sizeof(line), "%s : %s\n", fileName, path);
@@ -125,47 +134,43 @@ void saveFile(char *path, char *fileName)
     {
         fprintf(tempFile, "%s : %s\n", fileName, path);
     }
-
     fclose(file);
-
-    // Mở file gốc để ghi lại nội dung từ tempFile
     file = fopen("index.txt", "w");
     if (file == NULL)
     {
-        perror("Không thể mở file");
+        perror("ERROR: Can not open file!\n");
         exit(EXIT_FAILURE);
     }
-
-    // Copy từ tempFile vào file gốc
     rewind(tempFile);
     char c;
     while ((c = fgetc(tempFile)) != EOF)
     {
         fputc(c, file);
     }
-
-    // Đóng file gốc và xóa file tạm thời
     fclose(file);
     fclose(tempFile);
 };
+
+/**
+ * @brief delete file path from index file
+ * @param path file path to delete
+ */
 void deleteFile(char *path)
 {
-    FILE *file = fopen("index.txt", "r+"); // Mở file để đọc và ghi
+    FILE *file = fopen("index.txt", "r+");
     if (file == NULL)
     {
-        perror("Cannot open file index.txt!");
+        perror("ERROR: Can not open file index.txt!");
         exit(EXIT_FAILURE);
     }
 
-    FILE *tempFile = tmpfile(); // Mở một file tạm thời
+    FILE *tempFile = tmpfile();
     if (tempFile == NULL)
     {
-        perror("Không thể tạo file tạm thời");
+        perror("ERROR: Can not create temp file!\n");
         fclose(file);
         exit(EXIT_FAILURE);
     }
-
-    // Kiểm tra từng dòng trong file
     char line[BUFF_SIZE];
     char fileName[BUFF_SIZE];
     char filePath[BUFF_SIZE];
@@ -173,51 +178,44 @@ void deleteFile(char *path)
     int existFile = 0;
     while (fgets(line, sizeof(line), file) != NULL)
     {
-        // Sử dụng sscanf để đọc từng trường từ dòng
         if (sscanf(line, "%s : %[^\n]", fileName, filePath) == 2)
         {
-            // So sánh id và filename với giá trị mong muốn
             if (strcmp(fileName, path) == 0 || strcmp(filePath, path) == 0)
             {
                 existFile = 1;
             }
             else
             {
-                // Không phải dòng cần xóa, ghi vào tempFile
                 fprintf(tempFile, "%s", line);
             }
         }
     }
-
-    // Đóng file gốc và file tạm thời
     fclose(file);
 
     if (existFile)
     {
-        // Mở file gốc để ghi lại nội dung từ tempFile
         file = fopen("index.txt", "w");
         if (file == NULL)
         {
-            perror("Không thể mở file");
+            perror("ERROR: Can not open file!\n");
             exit(EXIT_FAILURE);
         }
-
-        // Copy từ tempFile vào file gốc
         rewind(tempFile);
         char c;
         while ((c = fgetc(tempFile)) != EOF)
         {
             fputc(c, file);
         }
-
-        // Đóng file gốc và xóa file tạm thời
         fclose(file);
         fclose(tempFile);
     }
-    else
-    {
-    }
 };
+
+/**
+ * @brief get size of file
+ * @param filePath file's path
+ * @return file's size
+ */
 long long getFileSize(char *filePath)
 {
     struct stat file_info;
@@ -232,3 +230,20 @@ long long getFileSize(char *filePath)
         return -1;
     }
 }
+
+/**
+ * @brief check file exist or not
+ * @param filePath path of file
+ * @return 1 if file is exist, 0 if file is not exist
+ */
+int checkFileExistOrNot(char *filePath)
+{
+    if (access(filePath, F_OK) != -1)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+};

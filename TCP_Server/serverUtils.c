@@ -4,39 +4,45 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <time.h>
-
+#include <pthread.h>
 #include "serverUtils.h"
 #include "Client.h"
-
 #define BUFF_SIZE 256
 
+pthread_mutex_t indexFileMutex = PTHREAD_MUTEX_INITIALIZER;
+
+/**
+ * @brief generate client's id random
+ * @return random id
+ */
 uint32_t generateClientID()
 {
     uint32_t random_id = (uint32_t)rand();
     return random_id;
 }
 
-uint32_t findClient(char *ip_address, uint16_t port)
-{
-    FILE *file;
-    char line[BUFF_SIZE];
-    char search_string;
-}
-
+/**
+ * @brief delete shared file from index file
+ * @param client_id client's id
+ * @param file_name file name to delete
+ * @return 1 if success, 0 if fail
+ */
 int deleteIndex(uint32_t client_id, const char *file_name)
 {
+    int status = 0;
+    pthread_mutex_lock(&indexFileMutex);
     FILE *file = fopen("index.txt", "r+");
     if (file == NULL)
     {
         perror("Cannot open file index.txt!");
-        return 2;
+        exit(EXIT_FAILURE);
     }
     FILE *tempFile = tmpfile();
     if (tempFile == NULL)
     {
-        perror("Không thể tạo file tạm thời");
+        perror("Error: can not create temp file!\n");
         fclose(file);
-        return 2;
+        exit(EXIT_FAILURE);
     }
     char line[BUFF_SIZE];
     uint32_t id;
@@ -65,8 +71,8 @@ int deleteIndex(uint32_t client_id, const char *file_name)
         file = fopen("index.txt", "w");
         if (file == NULL)
         {
-            perror("Không thể mở file");
-            return 2;
+            perror("Error: Can not open file!\n");
+            exit(EXIT_FAILURE);
         }
         rewind(tempFile);
         char c;
@@ -76,32 +82,41 @@ int deleteIndex(uint32_t client_id, const char *file_name)
         }
         fclose(file);
         fclose(tempFile);
-        return 1;
+        status = 1;
     }
     else
     {
-        return 0;
+        status = 0;
     }
+    pthread_mutex_unlock(&indexFileMutex);
+    return status;
 }
 
+/**
+ * @brief update share file index
+ * @param client_ip client's ip
+ * @param client_port client's port
+ * @param file_name file name
+ * @return 1 if success
+ *
+ */
 int updateIndex(uint32_t client_id, char *client_ip, uint16_t client_port, char *file_name)
 {
-    FILE *file = fopen("index.txt", "r+"); // Mở file để đọc
+
+    pthread_mutex_lock(&indexFileMutex);
+    FILE *file = fopen("index.txt", "r+");
     if (file == NULL)
     {
-        perror("Không thể mở file");
-        return 0; // Trả về 0 để biểu thị không tìm thấy
+        perror("Error: Can not open file!\n");
+        exit(EXIT_FAILURE);
     }
-
-    FILE *tempFile = tmpfile(); // Mở một file tạm thời
+    FILE *tempFile = tmpfile();
     if (tempFile == NULL)
     {
-        perror("Không thể tạo file tạm thời");
+        perror("Error: Can not create temp file!\n");
         fclose(file);
-        return 0; // Trả về 0 để biểu thị không thể tạo file tạm thời
+        exit(EXIT_FAILURE);
     }
-
-    // Kiểm tra từng dòng trong file
     char line[BUFF_SIZE];
     uint32_t id;
     char ip[BUFF_SIZE];
@@ -111,10 +126,8 @@ int updateIndex(uint32_t client_id, char *client_ip, uint16_t client_port, char 
     int recordUpdated = 0;
     while (fgets(line, sizeof(line), file) != NULL)
     {
-        // Sử dụng sscanf để đọc từng trường từ dòng
         if (sscanf(line, "%u %15s %hu %[^\n]", &id, ip, &port, filename) == 4)
         {
-            // So sánh id và filename với giá trị mong muốn
             if (id == client_id && strcmp(filename, file_name) == 0)
             {
                 snprintf(line, sizeof(line), "%u %s %u %s\n", client_id, client_ip, client_port, file_name);
@@ -128,34 +141,33 @@ int updateIndex(uint32_t client_id, char *client_ip, uint16_t client_port, char 
     if (!recordUpdated)
     {
         fprintf(tempFile, "%u %s %u %s\n", client_id, client_ip, client_port, file_name);
-        printf("%u %s %u %s\n", client_id, client_ip, client_port, file_name);
     }
-
     fclose(file);
-
-    // Mở file gốc để ghi lại nội dung từ tempFile
     file = fopen("index.txt", "w");
     if (file == NULL)
     {
-        perror("Không thể mở file");
-        return 0;
+        perror("ERROR: Can not open file!\n");
+        exit(EXIT_FAILURE);
     }
-
-    // Copy từ tempFile vào file gốc
     rewind(tempFile);
     char c;
     while ((c = fgetc(tempFile)) != EOF)
     {
         fputc(c, file);
     }
-
-    // Đóng file gốc và xóa file tạm thời
     fclose(file);
     fclose(tempFile);
-
+    pthread_mutex_unlock(&indexFileMutex);
     return 1;
 }
 
+/**
+ * @brief get client info from socket
+ * @param socket client's socket description
+ * @param client_ip buffer to store client's ip
+ * @param client_port buffer to store client's port
+ * @return 1 if success, 0 if fail
+ */
 int getInfoClient(int socket, char *client_ip, uint16_t *client_port)
 {
     // Get IP and PORT of client from connfd
@@ -174,7 +186,7 @@ int getInfoClient(int socket, char *client_ip, uint16_t *client_port)
 }
 
 /// @brief write log to file
-/// @param client_addr contain ip address and port of client
+/// @param ip_address contain ip address and port of client
 /// @param buffer information
 void write_log(uint16_t port, char *ip_address, const char *buffer)
 {

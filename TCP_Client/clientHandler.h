@@ -4,8 +4,8 @@
 
 void RegisterShareFileHandler(int client_socket, uint32_t id);
 void CancelShareFileHandler(int client_socket, uint32_t id);
-void FindFileHandler(int client_socket, uint32_t id);
-void DownloadFileHandler(int client_socket, uint32_t id);
+void FindFileHandler(int client_socket);
+void DownloadFileHandler(int client_socket);
 
 int createSocket();
 void signup(int socket);

@@ -11,14 +11,23 @@
 #include "helper.h"
 
 #define BUFF_SIZE 256
+/**
+ * @brief Handling file sharing registrations includes interacting with users
+ * @param client_socket socket description (connect to server)
+ * @param id client's id
+ */
 void RegisterShareFileHandler(int client_socket, uint32_t id)
 {
     char path[BUFF_SIZE];
     char filename[BUFF_SIZE];
 
-    printf("Nhap duong dan file muon chia se: ");
+    printf("Enter file path: ");
     scanf("%s", path);
-
+    if (checkFileExistOrNot(path) == 0)
+    {
+        printf("ERROR: file is not exist!\n");
+        return;
+    }
     getFileName(path, filename);
     int success = registerShareFile(client_socket, id, filename);
     if (success)
@@ -27,12 +36,17 @@ void RegisterShareFileHandler(int client_socket, uint32_t id)
     }
 }
 
+/**
+ * @brief Handling file sharing unsubscribes includes user interaction
+ * @param client_socket socket description (connect to server)
+ * @param id client's id
+ */
 void CancelShareFileHandler(int client_socket, uint32_t id)
 {
     char path[BUFF_SIZE];
     char filename[BUFF_SIZE];
 
-    printf("Nhap duong dan file muon huy chia se: ");
+    printf("Enter file path to unshare: ");
     scanf("%s", path);
 
     getFileName(path, filename);
@@ -43,7 +57,11 @@ void CancelShareFileHandler(int client_socket, uint32_t id)
     }
 }
 
-void FindFileHandler(int client_socket, uint32_t id)
+/**
+ * @brief Handling the search for clients sharing files includes interacting with users
+ * @param client_socket socket description (connect to server)
+ */
+void FindFileHandler(int client_socket)
 {
     char buffer[BUFF_SIZE];
     char fileName[BUFF_SIZE - 56];
@@ -76,7 +94,11 @@ void FindFileHandler(int client_socket, uint32_t id)
     }
 }
 
-void DownloadFileHandler(int client_socket, uint32_t id)
+/**
+ * @brief Handling file downloads includes interacting with users
+ * @param client_socket socket description (connect to server)
+ */
+void DownloadFileHandler(int client_socket)
 {
     char fileName[200], supplierIP[16];
     int supplierPort;
@@ -113,6 +135,11 @@ void DownloadFileHandler(int client_socket, uint32_t id)
         return;
     }
 }
+
+/**
+ * @brief Handles sending registration to the server and saving the id to file
+ * @param socket socket description (connect to server)
+ */
 void signup(int socket)
 {
     char buffer[BUFF_SIZE];
@@ -164,6 +191,12 @@ void signup(int socket)
     }
 }
 
+/**
+ * @brief Handling login to the server
+ * @param client_socket socket description (connect to server)
+ * @param id client's id
+ * @param port client's listen_port
+ */
 void login(int socket, uint32_t id, int port)
 {
     char buffer[BUFF_SIZE];
@@ -210,6 +243,13 @@ void login(int socket, uint32_t id, int port)
     }
 }
 
+/**
+ * @brief request register share file to server
+ * @param socket socket description (connect to server)
+ * @param id client's id
+ * @param file_name file name
+ * @return 1 if success, 0 if fail
+ */
 int registerShareFile(int socket, uint32_t id, char *file_name)
 {
     char buffer[BUFF_SIZE];
@@ -247,6 +287,13 @@ int registerShareFile(int socket, uint32_t id, char *file_name)
     return 0;
 }
 
+/**
+ * @brief request cancel register share file to server
+ * @param socket socket description (connect to server)
+ * @param id client's id
+ * @param file_name file name
+ * @return 1 if success, 0 if fail
+ */
 int cancelShareFile(int socket, uint32_t id, char *file_name)
 {
     char buffer[BUFF_SIZE];
@@ -282,13 +329,13 @@ int cancelShareFile(int socket, uint32_t id, char *file_name)
     return 0;
 }
 
-void findFile(int socket)
-{
-    // char buffer[BUFF_SIZE];
-    // int bytes_received;
-    // sprintf(buffer, "FI %")
-}
-
+/**
+ * @brief request register share file to server
+ * @param socket socket description (connect to server)
+ * @param fileName file name to download
+ * @param clientIP supplier's ip
+ * @param port supplier's port
+ */
 void downloadFile(int socket, char *fileName, char *clientIP, int port)
 {
     char buffer[BUFF_SIZE];
@@ -345,6 +392,11 @@ void downloadFile(int socket, char *fileName, char *clientIP, int port)
     }
 }
 
+/**
+ * @brief send file from supplier to client
+ * @param socket socket description (connect to other client)
+ * @param filePath file path to send
+ */
 void sendFile(int socket, char *filePath)
 {
     char buffer[4096];
@@ -367,7 +419,7 @@ void sendFile(int socket, char *filePath)
 /**
  * @function storeFile: write file content from client to a file.
  * @param conn_sock: connect socket's descriptor
- * @param filePath: path of file to write in server
+ * @param fileName: name of file
  * @param fileSize: size of file
  */
 void storeFile(int conn_sock, char *fileName, long long fileSize)
@@ -377,10 +429,10 @@ void storeFile(int conn_sock, char *fileName, long long fileSize)
     char filePath[500];
     memset(filePath, '\0', 500);
     sprintf(filePath, "storage/%s", fileName);
-    FILE *file = fopen(filePath, "wb"); // "wb" để mở tập tin để ghi dữ liệu nhị phân
+    FILE *file = fopen(filePath, "wb");
     if (file == NULL)
     {
-        perror("Khong the mo file");
+        perror("ERROR: Can not open file!\n");
         return;
     }
     while (fileSize > 0)
@@ -393,7 +445,7 @@ void storeFile(int conn_sock, char *fileName, long long fileSize)
         size_t elements_written = fwrite(bufferFile, ret, 1, file);
         if (elements_written != 1)
         {
-            perror("Loi khi ghi vao file");
+            perror("ERROR: Can not write into file!\n");
             fclose(file);
             return;
         }
