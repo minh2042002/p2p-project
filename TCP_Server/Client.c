@@ -4,7 +4,15 @@
 #include <string.h>
 #include <stdio.h>
 pthread_mutex_t loginMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t clientFileMutex = PTHREAD_MUTEX_INITIALIZER;
 
+/**
+ * @brief create new client
+ * @param id client's id
+ * @param ip client's ip
+ * @param port client's port
+ * @return new client
+ */
 struct Client *create(uint32_t id, char *ip, uint16_t port)
 {
     struct Client *client = (struct Client *)malloc(sizeof(struct Client));
@@ -24,6 +32,11 @@ struct Client *create(uint32_t id, char *ip, uint16_t port)
     return client;
 }
 
+/**
+ * @brief add a client into client list
+ * @param head client list
+ * @param newClient new client
+ */
 void add(struct Client **head, struct Client *newClient)
 {
     if (*head == NULL)
@@ -38,6 +51,12 @@ void add(struct Client **head, struct Client *newClient)
     }
 }
 
+/**
+ * @brief find a client by id
+ * @param head client list
+ * @param id client's id
+ * @return a client
+ */
 struct Client *find(struct Client *head, uint32_t id)
 {
     struct Client *current = head;
@@ -55,6 +74,13 @@ struct Client *find(struct Client *head, uint32_t id)
     return NULL;
 }
 
+/**
+ * @brief find a client by ip and port
+ * @param head client list
+ * @param ip client's ip
+ * @param port client's port
+ * @return a client
+ */
 struct Client *findByIPAndPort(struct Client *head, char *ip, int port)
 {
     struct Client *current = head;
@@ -73,6 +99,11 @@ struct Client *findByIPAndPort(struct Client *head, char *ip, int port)
     return NULL;
 }
 
+/**
+ * @brief delete client by id
+ * @param head client list
+ * @param id client's id
+ */
 void deleteByID(struct Client **head, uint32_t id)
 {
     struct Client *delClient = find(*head, id);
@@ -96,6 +127,11 @@ void deleteByID(struct Client **head, uint32_t id)
     free(delClient);
 }
 
+/**
+ * @brief update client ip
+ * @param client client need to update ip
+ * @param newIP new ip
+ */
 void update(struct Client *client, const char *newIP)
 {
     if (client != NULL)
@@ -103,6 +139,12 @@ void update(struct Client *client, const char *newIP)
         inet_pton(AF_INET, newIP, &(client->_addr.sin_addr));
     }
 }
+
+/**
+ * @brief login
+ * @param client client need to login
+ * @return 1 if login success, 0 is login fail
+ */
 int login(struct Client *client)
 {
     int status = 0;
@@ -128,6 +170,10 @@ int login(struct Client *client)
     }
 }
 
+/**
+ * @brief logout
+ * @param client client need to logout
+ */
 void logout(struct Client *client)
 {
     pthread_mutex_lock(&loginMutex);
@@ -138,8 +184,13 @@ void logout(struct Client *client)
     pthread_mutex_unlock(&loginMutex);
 }
 
+/**
+ * @brief save all client into client file
+ * @param head client list
+ */
 void saveAll(struct Client *head)
 {
+    pthread_mutex_lock(&clientFileMutex);
     FILE *file = fopen("client.txt", "wb");
     if (file == NULL)
     {
@@ -156,10 +207,14 @@ void saveAll(struct Client *head)
         fwrite(current, sizeof(struct Client), 1, file);
         current = current->next;
     }
-
     fclose(file);
+    pthread_mutex_unlock(&clientFileMutex);
 };
 
+/**
+ * @brief load all client from file
+ * @param head buffer to store clients
+ */
 void loadFromFile(struct Client **head)
 {
     FILE *file = fopen("client.txt", "rb");
@@ -191,6 +246,11 @@ void loadFromFile(struct Client **head)
     fclose(file);
 }
 
+/**
+ * @brief count number of clients
+ * @param head client list
+ * @return number of client
+ */
 int count(struct Client *head)
 {
     int numberOfClients = 0;

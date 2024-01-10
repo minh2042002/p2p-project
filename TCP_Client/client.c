@@ -46,7 +46,9 @@ int main(int argc, char *argv[])
     pthread_join(serverTid, NULL);
     return 0;
 }
-
+/**
+ * @brief print menu of main program.
+ */
 void printMenu()
 {
     printf("Menu:\n");
@@ -57,12 +59,15 @@ void printMenu()
     printf("5. Exit\n");
     printf("Nhập chức năng: ");
 }
+/**
+ * @brief Thread use to connect and request to server
+ */
 void *connectServerThread(void *arg)
 {
     struct ServerInfo *serverInfo = (struct ServerInfo *)arg;
     int client_socket = createSocket();
     connectSocket(client_socket, serverInfo->ip, serverInfo->port);
-    uint32_t id = getID(); // kiểm tra client có id chưa. -1
+    uint32_t id = getID();
     if (id == -1)
     {
         signup(client_socket);
@@ -94,11 +99,11 @@ void *connectServerThread(void *arg)
         }
         else if (function == 3)
         {
-            FindFileHandler(client_socket, id);
+            FindFileHandler(client_socket);
         }
         else if (function == 4)
         {
-            DownloadFileHandler(client_socket, id);
+            DownloadFileHandler(client_socket);
         }
         else if (function == 5)
         {
@@ -107,6 +112,9 @@ void *connectServerThread(void *arg)
     }
     close(client_socket);
 }
+/**
+ * @brief this thread use to accept connect from other client, create a send file thread per connection.
+ */
 void *listenThread(void *arg)
 {
 
@@ -127,6 +135,9 @@ void *listenThread(void *arg)
     }
     close(listen_sock);
 }
+/**
+ * @brief this thread use to request to analys download file request.
+ */
 void *sendFileThread(void *arg)
 {
     int conn_sock = *((int *)arg);
@@ -184,8 +195,6 @@ void *sendFileThread(void *arg)
                                 printf("Error: can not open index.txt!");
                                 exit(EXIT_FAILURE);
                             }
-
-                            // lay duong dan file
                             int status = 0;
                             char line[300];
                             char fileNameCMP[100];
@@ -208,7 +217,6 @@ void *sendFileThread(void *arg)
                             }
                             else
                             {
-                                // kiem tra file co ton tai khong
                                 file = fopen(filePath, "rb");
                                 if (file != NULL)
                                 {
@@ -238,9 +246,6 @@ void *sendFileThread(void *arg)
                                     sprintf(buffer, "240");
                                     send(conn_sock, buffer, BUFF_SIZE, 0);
                                 }
-
-                                // sendFile(conn_sock, fileName);
-                                // nhan thong diep bao truyen file thanh cong
                             }
                         }
                         l = -1;

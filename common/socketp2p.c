@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "socketp2p.h"
-
-/// @brief create new socket
-/// @return a socket descriptor return -1 if create fail)
+/**
+ * @brief create new socket
+ * @return a socket descriptor return -1 if create fail
+ */
 int createSocket()
 {
     int client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -15,11 +16,12 @@ int createSocket()
     return client_socket;
 }
 
-/// @brief connect server with socket
-/// @param server_ip server address
-/// @param port_number port of server
-/// @param client_sock a socket descriptor
-/// @return 0 - if connect fail, 1 - if connect is success
+/**
+ * @brief connect server with socket
+ * @param client_socket a socket descriptor
+ * @param server_ip server address
+ * @param port_number port of server
+ */
 void connectSocket(int client_socket, char *server_ip, int port_number)
 {
     struct sockaddr_in server_addr;
@@ -35,10 +37,11 @@ void connectSocket(int client_socket, char *server_ip, int port_number)
     }
 }
 
-/// @brief bind server with port and socket descriptor
-/// @param port_number port server
-/// @param listen_sock  a socket descriptor
-/// @return 0 nnn
+/**
+ * @brief bind server with port and socket descriptor
+ * @param server_socket  a socket descriptor
+ * @param port_number port server
+ */
 void bindSocket(int server_socket, int port_number)
 {
     struct sockaddr_in server_addr;
@@ -53,7 +56,11 @@ void bindSocket(int server_socket, int port_number)
         exit(EXIT_FAILURE);
     }
 }
-
+/**
+ * @brief prepare to accept connection
+ * @param listen_socket a socket descriptor
+ * @param backlog number of connect will be queued
+ */
 void listenSocket(int listen_socket, int backlog)
 {
     if (listen(listen_socket, backlog) == -1)
@@ -63,6 +70,13 @@ void listenSocket(int listen_socket, int backlog)
     }
 }
 
+/**
+ * @brief await a connection on socket.
+ * @param server_socket a socket descriptor
+ * @param client_addr buffer to store client address
+ * @param client_len length of client_addr struct
+ * @return socket
+ */
 int acceptSocket(int server_socket, struct sockaddr *client_addr, socklen_t *client_len)
 {
     int conn_sock = accept(server_socket, client_addr, client_len);
