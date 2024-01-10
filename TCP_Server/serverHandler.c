@@ -1,212 +1,332 @@
-#include "stdint.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <time.h>
-
 #include "serverHandler.h"
+#include "serverUtils.h"
 #include "Client.h"
 
 #define BUFF_SIZE 256
+struct Client *clientList = NULL;
 
-uint32_t generateClientID()
+void loadClients()
 {
-    uint32_t random_id = (uint32_t)rand();
-    return random_id;
+    loadFromFile(&clientList);
 }
 
-uint32_t findClient(char *ip_address, uint16_t port)
+void SignUpHandler(int connfd, struct Client **client, char *command, int *loginStatus)
 {
-    FILE *file;
-    char line[BUFF_SIZE];
-    char search_string;
-}
+    char buffer[BUFF_SIZE];
+    char client_ip[16];
+    uint16_t client_port;
+    int clientListenPort;
+    sscanf(command, "SU %d", &clientListenPort);
+    int success = getInfoClient(connfd, client_ip, &client_port);
 
-int deleteIndex(uint32_t client_id, const char *file_name)
-{
-    FILE *file = fopen("index.txt", "r+"); // Mở file để đọc và ghi
-    if (file == NULL)
+    if (success)
     {
-        perror("Cannot open file index.txt!");
-        return 2; // Trả về 2 để biểu thị không thể mở file
-    }
-
-    FILE *tempFile = tmpfile(); // Mở một file tạm thời
-    if (tempFile == NULL)
-    {
-        perror("Không thể tạo file tạm thời");
-        fclose(file);
-        return 2; // Trả về 2 để biểu thị không thể tạo file tạm thời
-    }
-
-    // Kiểm tra từng dòng trong file
-    char line[BUFF_SIZE];
-    uint32_t id;
-    char ip[16];
-    uint16_t port;
-    char filename[BUFF_SIZE];
-
-    int existFile = 0;
-    while (fgets(line, sizeof(line), file) != NULL)
-    {
-        // Sử dụng sscanf để đọc từng trường từ dòng
-        if (sscanf(line, "%u %15s %hu %[^\n]", &id, ip, &port, filename) == 4)
+        uint32_t id;
+        while (1)
         {
-            // So sánh id và filename với giá trị mong muốn
-            if (id == client_id && strcmp(filename, file_name) == 0)
+            id = generateClientID();
+            struct Client *current = clientList;
+            int duplicate = 0;
+            while (current != NULL)
             {
-                existFile = 1;
+                if (current->id == id)
+                {
+                    duplicate = 1;
+                    break;
+                }
+                current = current->next;
             }
-            else
+            if (duplicate == 0)
             {
-                // Không phải dòng cần xóa, ghi vào tempFile
-                fprintf(tempFile, "%s", line);
+                break;
             }
         }
-    }
 
-    // Đóng file gốc và file tạm thời
-    fclose(file);
-    fclose(tempFile);
-
-    if (existFile)
-    {
-        // Mở file gốc để ghi lại nội dung từ tempFile
-        file = fopen("index.txt", "w");
-        if (file == NULL)
+        struct Client *newClient = create(id, client_ip, clientListenPort);
+        add(&clientList, newClient);
+        *client = newClient;
+        if (login(newClient) == 1)
         {
-            perror("Không thể mở file");
-            return 2; // Trả về 0 để biểu thị không thể mở file
+            *loginStatus = 1;
         }
+        saveAll(clientList);
 
-        // Copy từ tempFile vào file gốc
-        rewind(tempFile);
-        char c;
-        while ((c = fgetc(tempFile)) != EOF)
-        {
-            fputc(c, file);
-        }
-
-        // Đóng file gốc và xóa file tạm thời
-        fclose(file);
-        return 1; // Trả về 1 để biểu thị đã xóa thành công
+        sprintf(buffer, "%d - %u", 100, id);
+        send(connfd, buffer, 256, 0);
     }
     else
     {
-        return 0;
+        sprintf(buffer, "%d", 300);
+        send(connfd, buffer, 256, 0);
     }
 }
 
-int updateIndex(uint32_t client_id, char *client_ip, uint16_t client_port, char *file_name)
+void SignInHandler(int connfd, struct Client **client, char *command, int *loginStatus)
 {
+    char buffer[BUFF_SIZE];
+    uint32_t clientID = 0;
+    char client_ip[16];
+    uint16_t client_port;
+    int clientListenPort;
+    memset(client_ip, '\0', 16);
+    sscanf(command, "SI %u %d", &clientID, &clientListenPort);
+    getInfoClient(connfd, client_ip, &client_port);
+    *client = find(clientList, clientID);
+    if (*client != NULL)
+    {
+        if (login(*client) == 1)
+        {
+            *loginStatus = 1;
+            update(*client, client_ip);
+            (*client)->_addr.sin_port = clientListenPort;
+            sprintf(buffer, "%d", 110);
+            saveAll(clientList);
+        }
+        else
+        {
+            sprintf(buffer, "%d", 211);
+        }
+    }
+    else
+    {
+        sprintf(buffer, "%d", 210);
+    }
+    send(connfd, buffer, 256, 0);
+}
+
+void RegisterShareHandler(int connfd, char *command, int *loginStatus)
+{
+    char buffer[BUFF_SIZE];
+    if (loginStatus == 0)
+    {
+        memset(buffer, '\0', BUFF_SIZE);
+        sprintf(buffer, "212");
+        send(connfd, buffer, BUFF_SIZE, 0);
+        return;
+    }
+    char client_ip[BUFF_SIZE];
+    uint16_t client_port;
+    getInfoClient(connfd, client_ip, &client_port);
+    uint32_t id;
+    char filename[BUFF_SIZE];
+    if (sscanf(command, "SH %u %s", &id, filename) == 2)
+    {
+        struct Client *existClient = find(clientList, id);
+        char client_ip[BUFF_SIZE];
+        uint16_t client_port;
+
+        strcpy(client_ip, inet_ntoa(existClient->_addr.sin_addr));
+        client_port = existClient->_addr.sin_port;
+        update(existClient, client_ip);
+        saveAll(clientList);
+        int success = updateIndex(id, client_ip, client_port, filename);
+        if (success)
+        {
+            sprintf(buffer, "%d", 120);
+            send(connfd, buffer, 256, 0);
+        }
+        else
+        {
+            sprintf(buffer, "%d", 300);
+            send(connfd, buffer, 256, 0);
+        }
+    }
+    else
+    {
+        sprintf(buffer, "%d", 300);
+        send(connfd, buffer, 256, 0);
+    }
+}
+
+void CancelShareHandler(int connfd, char *buffer, int *loginStatus)
+{
+    char sendData[BUFF_SIZE];
+    if (loginStatus == 0)
+    {
+        memset(sendData, '\0', BUFF_SIZE);
+        sprintf(sendData, "212");
+        send(connfd, sendData, BUFF_SIZE, 0);
+        return;
+    }
+    char client_ip[BUFF_SIZE];
+    uint16_t client_port;
+    getInfoClient(connfd, client_ip, &client_port);
+
+    char type[3];
+    uint32_t id;
+    char filename[BUFF_SIZE];
+    if (sscanf(buffer, "%2s %u %s", type, &id, filename) == 3)
+    {
+        int success = deleteIndex(id, filename);
+        if (success == 1)
+        {
+            sprintf(buffer, "%d", 150);
+            send(connfd, buffer, 256, 0);
+        }
+        else if (success == 0)
+        {
+            sprintf(buffer, "%d", 250);
+            send(connfd, buffer, 256, 0);
+        }
+        else
+        {
+            sprintf(buffer, "%d", 300);
+            send(connfd, buffer, 256, 0);
+        }
+    }
+    else
+    {
+        sprintf(buffer, "%d", 300);
+        send(connfd, buffer, 256, 0);
+    }
+}
+
+void FindShareFileHandler(int connfd, char *command, int *loginStatus)
+{
+    char buffer[BUFF_SIZE];
+    if (loginStatus == 0)
+    {
+        memset(buffer, '\0', BUFF_SIZE);
+        sprintf(buffer, "212");
+        send(connfd, buffer, BUFF_SIZE, 0);
+        return;
+    }
+    memset(buffer, '\0', BUFF_SIZE);
+    char fileName[50], fileNameTmp[50];
+    uint32_t id;
+    char ip[16];
+    int port;
+    sscanf(command, "FI %s", fileName);
+    char line[BUFF_SIZE];
+    int count = 0;
     FILE *file = fopen("index.txt", "r+"); // Mở file để đọc
     if (file == NULL)
     {
         perror("Không thể mở file");
-        return 0; // Trả về 0 để biểu thị không tìm thấy
+        exit(EXIT_FAILURE);
     }
-
-    FILE *tempFile = tmpfile(); // Mở một file tạm thời
-    if (tempFile == NULL)
-    {
-        perror("Không thể tạo file tạm thời");
-        fclose(file);
-        return 0; // Trả về 0 để biểu thị không thể tạo file tạm thời
-    }
-
-    // Kiểm tra từng dòng trong file
-    char line[BUFF_SIZE];
-    uint32_t id;
-    char ip[BUFF_SIZE];
-    uint16_t port;
-    char filename[BUFF_SIZE];
-
-    int recordUpdated = 0;
     while (fgets(line, sizeof(line), file) != NULL)
     {
         // Sử dụng sscanf để đọc từng trường từ dòng
-        if (sscanf(line, "%u %15s %hu %[^\n]", &id, ip, &port, filename) == 4)
+        if (sscanf(line, "%u %15s %d %[^\n]", &id, ip, &port, fileNameTmp) == 4)
         {
             // So sánh id và filename với giá trị mong muốn
-            if (id == client_id && strcmp(filename, file_name) == 0)
+            if (strcmp(fileName, fileNameTmp) == 0)
             {
-                snprintf(line, sizeof(line), "%u %s %u %s", client_id, client_ip, client_port, file_name);
-                recordUpdated = 1;
+                struct Client *clientTmp = find(clientList, id);
+                if (clientTmp->isLogin == 1)
+                {
+                    count++;
+                    if (count == 1)
+                    {
+                        sprintf(buffer, "%d", 130);
+                        send(connfd, buffer, BUFF_SIZE, 0);
+                    }
+                    memset(buffer, '\0', BUFF_SIZE);
+                    sprintf(buffer, "%s %d %s", ip, port, fileName);
+                    send(connfd, buffer, BUFF_SIZE, 0);
+                }
             }
         }
-
-        fprintf(tempFile, "%s", line);
     }
-
-    if (!recordUpdated)
-    {
-        fprintf(tempFile, "%u %s %u %s\n", client_id, client_ip, client_port, file_name);
-    }
-
     fclose(file);
-    fclose(tempFile);
-
-    // Mở file gốc để ghi lại nội dung từ tempFile
-    file = fopen("index.txt", "w");
+    if (count > 0)
+    {
+        memset(buffer, '\0', BUFF_SIZE);
+        sprintf(buffer, "%d", 131);
+        send(connfd, buffer, BUFF_SIZE, 0);
+    }
+    else
+    {
+        memset(buffer, '\0', BUFF_SIZE);
+        sprintf(buffer, "%d", 230);
+        send(connfd, buffer, BUFF_SIZE, 0);
+    }
+}
+int checkFile(char *fileName, char *clientIP, int clientPort)
+{
+    char fileNameTmp[50];
+    uint32_t id;
+    char ip[16];
+    int port;
+    char line[BUFF_SIZE];
+    int count = 0;
+    FILE *file = fopen("index.txt", "r+"); // Mở file để đọc
     if (file == NULL)
     {
         perror("Không thể mở file");
-        return 0;
+        exit(EXIT_FAILURE);
     }
-
-    // Copy từ tempFile vào file gốc
-    rewind(tempFile);
-    char c;
-    while ((c = fgetc(tempFile)) != EOF)
+    while (fgets(line, sizeof(line), file) != NULL)
     {
-        fputc(c, file);
+        // Sử dụng sscanf để đọc từng trường từ dòng
+        if (sscanf(line, "%u %15s %d %[^\n]", &id, ip, &port, fileNameTmp) == 4)
+        {
+            // So sánh id và filename với giá trị mong muốn
+            if (strcmp(fileName, fileNameTmp) == 0 && strcmp(clientIP, ip) == 0 && clientPort == port)
+            {
+                struct Client *clientTmp = find(clientList, id);
+                if (clientTmp->isLogin == 1)
+                {
+                    return 1;
+                }
+            }
+        }
     }
-
-    // Đóng file gốc và xóa file tạm thời
     fclose(file);
-    return 1;
+    return 0;
 }
-
-int getInfoClient(int socket, char *client_ip, uint16_t *client_port)
+void CheckFileHandler(int connfd, char *command, int *loginStatus)
 {
-    // Get IP and PORT of client from connfd
-    struct sockaddr_in peer_addr;
-    socklen_t peer_len = sizeof(peer_addr);
-    if (getpeername(socket, (struct sockaddr *)&peer_addr, &peer_len) == -1)
+    char buffer[BUFF_SIZE];
+    if (loginStatus == 0)
     {
-        perror("Unable to get client information!");
-        return 0;
+        memset(buffer, '\0', BUFF_SIZE);
+        sprintf(buffer, "212");
+        send(connfd, buffer, BUFF_SIZE, 0);
+        return;
     }
-
-    inet_ntop(AF_INET, &(peer_addr.sin_addr), client_ip, sizeof(client_ip));
-    *client_port = ntohs(peer_addr.sin_port);
-
-    return 1;
+    memset(buffer, '\0', BUFF_SIZE);
+    char fileName[200], clientIP[16];
+    int port;
+    sscanf(command, "CH %s %s %d", fileName, clientIP, &port);
+    if (checkFile(fileName, clientIP, port))
+    {
+        sprintf(buffer, "160");
+    }
+    else
+    {
+        sprintf(buffer, "260");
+    }
+    send(connfd, buffer, BUFF_SIZE, 0);
 }
-
-/// @brief write log to file
-/// @param client_addr contain ip address and port of client
-/// @param buffer information
-void write_log(uint16_t port, char *ip_address, const char *buffer)
+void removeBugFile(int connfd, char *command, int *loginStatus)
 {
-    char log_entry[BUFF_SIZE];
-    sprintf(log_entry, "[%s:%d]$%s", ip_address, port, buffer);
-
-    FILE *log_file = fopen("log.txt", "a");
-    if (log_file)
+    char buffer[BUFF_SIZE];
+    if (loginStatus == 0)
     {
-        time_t t = time(NULL);
-        struct tm ltm = *localtime(&t);
-
-        fprintf(log_file, "[%02d/%02d/%04d %02d:%02d:%02d] $ %s\n",
-                ltm.tm_mday,
-                ltm.tm_mon + 1,
-                ltm.tm_year + 1900,
-                ltm.tm_hour,
-                ltm.tm_min,
-                ltm.tm_sec,
-                log_entry);
-        fclose(log_file);
+        memset(buffer, '\0', BUFF_SIZE);
+        sprintf(buffer, "212");
+        send(connfd, buffer, BUFF_SIZE, 0);
+        return;
     }
-}
+    memset(buffer, '\0', BUFF_SIZE);
+    char fileName[200], clientIP[16];
+    int port;
+    sscanf(command, "UD %s %s %d", fileName, clientIP, &port);
+    struct Client *clientA = findByIPAndPort(clientList, clientIP, port);
+    int r = deleteIndex(clientA->id, fileName);
+    if (r == 1)
+    {
+        sprintf(buffer, "170");
+    }
+    else
+    {
+        sprintf(buffer, "270");
+    }
+    send(connfd, buffer, BUFF_SIZE, 0);
+};

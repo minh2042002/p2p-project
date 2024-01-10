@@ -22,11 +22,6 @@ void *sendFileThread(void *);
 void *requestThread(void *);
 void *connectServerThread(void *);
 
-void RegisterShareFileHandler(int client_socket, uint32_t id);
-void CancelShareFileHandler(int client_socket, uint32_t id);
-void FindFileHandler(int client_socket, uint32_t id);
-void DownloadFileHandler(int client_socket, uint32_t id);
-
 int main(int argc, char *argv[])
 {
     if (argc != 4)
@@ -83,6 +78,9 @@ void *connectServerThread(void *arg)
         int r = scanf("%d", &function);
         if (r != 1 || function < 1 || function > 5)
         {
+            int character;
+            while ((character = getchar()) != '\n' && character != EOF)
+                ;
             printf("Nhập chức năng từ 1 - 5!\n");
             continue;
         }
@@ -109,16 +107,11 @@ void *connectServerThread(void *arg)
     }
     close(client_socket);
 }
-void *requestThread(void *arg)
-{
-    pthread_detach(pthread_self());
-};
 void *listenThread(void *arg)
 {
 
     pthread_detach(pthread_self());
     int port = *((int *)arg);
-    pthread_t tid;
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     int listen_sock = createSocket();
@@ -129,15 +122,17 @@ void *listenThread(void *arg)
     {
         conn_sock = malloc(sizeof(int));
         *conn_sock = acceptSocket(listen_sock, (struct sockaddr *)&client_addr, &client_len);
-        printf("[+] Đã kết nối với %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        pthread_t tid;
         pthread_create(&tid, NULL, &sendFileThread, (void *)conn_sock);
     }
+    close(listen_sock);
 }
 void *sendFileThread(void *arg)
 {
-    pthread_detach(pthread_self());
     int conn_sock = *((int *)arg);
-    int l = 0, ret = 0;
+    free(arg);
+    pthread_detach(pthread_self());
+    int l = -1, ret = 0;
     char command[BUFF_SIZE];
     char send_data[BUFF_SIZE];
     char buffer[BUFF_SIZE];
@@ -146,7 +141,6 @@ void *sendFileThread(void *arg)
         ret = recv(conn_sock, buffer, 256, 0);
         if (ret <= 0)
         {
-            // close
             break;
         }
         else
@@ -179,12 +173,75 @@ void *sendFileThread(void *arg)
                     else
                     {
                         command[l - 1] = '\0';
-                        if (strcmp(command, "DL") == 0)
+                        if (strstr(command, "DL ") == command)
                         {
                             // Sendfile
                             char fileName[100];
                             sscanf(command, "DL %s", fileName);
-                            sendFile(conn_sock, fileName);
+                            FILE *file = fopen("index.txt", "r");
+                            if (file == NULL)
+                            {
+                                printf("Error: can not open index.txt!");
+                                exit(EXIT_FAILURE);
+                            }
+
+                            // lay duong dan file
+                            int status = 0;
+                            char line[300];
+                            char fileNameCMP[100];
+                            char filePath[200];
+                            while (fgets(line, 300, file) != NULL)
+                            {
+                                sscanf(line, "%s : %s", fileNameCMP, filePath);
+                                if (strcmp(fileName, fileNameCMP) == 0)
+                                {
+                                    status = 1;
+                                    break;
+                                }
+                            }
+
+                            if (status == 0)
+                            {
+                                memset(buffer, '\0', BUFF_SIZE);
+                                sprintf(buffer, "241");
+                                send(conn_sock, buffer, BUFF_SIZE, 0);
+                            }
+                            else
+                            {
+                                // kiem tra file co ton tai khong
+                                file = fopen(filePath, "rb");
+                                if (file != NULL)
+                                {
+                                    fseek(file, 0, SEEK_END);
+                                    long file_size = ftell(file);
+                                    if (file_size != -1)
+                                    {
+                                        memset(buffer, '\0', BUFF_SIZE);
+                                        sprintf(buffer, "140 %ld", file_size);
+                                        send(conn_sock, buffer, BUFF_SIZE, 0);
+                                        sendFile(conn_sock, filePath);
+                                        memset(buffer, '\0', BUFF_SIZE);
+                                        recv(conn_sock, buffer, BUFF_SIZE, 0);
+                                    }
+                                    else
+                                    {
+                                        memset(buffer, '\0', BUFF_SIZE);
+                                        sprintf(buffer, "242");
+                                        send(conn_sock, buffer, BUFF_SIZE, 0);
+                                    }
+
+                                    fclose(file);
+                                }
+                                else
+                                {
+                                    memset(buffer, '\0', BUFF_SIZE);
+                                    sprintf(buffer, "240");
+                                    send(conn_sock, buffer, BUFF_SIZE, 0);
+                                }
+
+                                // sendFile(conn_sock, fileName);
+                                // nhan thong diep bao truyen file thanh cong
+                            }
                         }
                         l = -1;
                     }
@@ -193,44 +250,4 @@ void *sendFileThread(void *arg)
         }
     }
     close(conn_sock);
-}
-
-void RegisterShareFileHandler(int client_socket, uint32_t id)
-{
-    char path[BUFF_SIZE];
-    char filename[BUFF_SIZE];
-
-    printf("Nhap duong dan file muon chia se: ");
-    scanf("%s", path);
-
-    getFileName(path, filename);
-    int succes = registerShareFile(client_socket, id, filename);
-    if (succes)
-    {
-        saveFile(path);
-    }
-}
-
-void CancelShareFileHandler(int client_socket, uint32_t id)
-{
-    char path[BUFF_SIZE];
-    char filename[BUFF_SIZE];
-
-    printf("Nhap duong dan file muon huy chia se: ");
-    scanf("%s", path);
-
-    getFileName(path, filename);
-    int succes = cancelShareFile(client_socket, id, filename);
-    if (succes)
-    {
-        deleteFile(path);
-    }
-}
-
-void FindFileHandler(int client_socket, uint32_t id)
-{
-}
-
-void DownloadFileHandler(int client_socket, uint32_t id)
-{
 }

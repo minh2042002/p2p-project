@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "Makefile": "c",
-        "client.h": "c",
-        "stdint.h": "c",
-        "time.h": "c",
-        "inet.h": "c"
-    }
-}

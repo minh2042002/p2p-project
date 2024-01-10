@@ -7,19 +7,11 @@
 #include <pthread.h>
 #include "../common/socketp2p.h"
 #include "Client.h"
+#include "serverUtils.h"
 #include "serverHandler.h"
 
 #define BUFF_SIZE 256
 void *handleThread(void *);
-struct Client *clientList = NULL;
-pthread_mutex_t loginMutex = PTHREAD_MUTEX_INITIALIZER;
-
-void SignUpHandler(int connfd, struct Client *client, char *buffer);
-void SignInHandler(int connfd, struct Client *client, char *buffer);
-void RegisterShareHandler(int connfd, char *buffer);
-void CancelShareHandler(int connfd, char *buffer);
-void FindShareFileHandler(int connfd, char *buffer);
-void DownloadFileHandler(int connfd, char *buffer);
 
 int main(int argc, char *argv[])
 {
@@ -29,9 +21,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Load list client
-    loadFromFile(&clientList);
-
+    // Load list client from file
+    loadClients();
     int port_number = atoi(argv[1]);
     int *connfd;
     pthread_t tid;
@@ -52,7 +43,7 @@ int main(int argc, char *argv[])
 
         // connect with a client
         *connfd = acceptSocket(server_sock, (struct sockaddr *)client_addr, &sin_size);
-        printf("[+] Đã kết nối với %s:%d\n", inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+        printf("[+] connect to client %s:%d\n", inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
         pthread_create(&tid, NULL, &handleThread, (void *)connfd);
     }
 
@@ -63,6 +54,7 @@ int main(int argc, char *argv[])
 
 void *handleThread(void *arg)
 {
+    int loginStatus = 0;
     int ret;
     int connfd = *((int *)arg);
     free(arg);
@@ -79,7 +71,11 @@ void *handleThread(void *arg)
         if (ret <= 0)
         {
             // logout and close thread
-            logout(client);
+            if (loginStatus == 1)
+            {
+                logout(client);
+                loginStatus = 0;
+            }
             break;
         }
         else
@@ -113,29 +109,33 @@ void *handleThread(void *arg)
                     else
                     {
                         command[l - 1] = '\0';
-                        if (strcmp(command, "SU") == 0)
+                        if (strstr(command, "SU") == command)
                         {
-                            SignUpHandler(connfd, client, buffer);
+                            SignUpHandler(connfd, &client, command, &loginStatus);
                         }
                         else if (strstr(command, "SI ") == command)
                         {
-                            SignInHandler(connfd, client, buffer);
+                            SignInHandler(connfd, &client, command, &loginStatus);
                         }
                         else if (strstr(command, "SH ") == command)
                         {
-                            RegisterShareHandler(connfd, buffer);
+                            RegisterShareHandler(connfd, command, &loginStatus);
                         }
-                        else if (strstr(command, "DF") == command)
+                        else if (strstr(command, "DF ") == command)
                         {
-                            CancelShareHandler(connfd, buffer);
+                            CancelShareHandler(connfd, command, &loginStatus);
                         }
-                        else if (strstr(command, "FI") == command)
+                        else if (strstr(command, "FI ") == command)
                         {
-                            FindShareFileHandler(connfd, buffer);
+                            FindShareFileHandler(connfd, command, &loginStatus);
                         }
-                        else if (strstr(command, "DL") == command)
+                        else if (strstr(command, "CH ") == command)
                         {
-                            DownloadFileHandler(connfd, buffer);
+                            CheckFileHandler(connfd, command, &loginStatus);
+                        }
+                        else if (strstr(command, "UD ") == command)
+                        {
+                            removeBugFile(connfd, command, &loginStatus);
                         }
                         else
                         {
@@ -149,142 +149,4 @@ void *handleThread(void *arg)
         }
     }
     close(connfd);
-}
-
-void SignUpHandler(int connfd, struct Client *client, char *buffer)
-{
-    char client_ip[BUFF_SIZE];
-    uint16_t client_port;
-    int succes = getInfoClient(connfd, client_ip, &client_port);
-
-    if (succes)
-    {
-        uint32_t id = generateClientID();
-
-        struct Client *newClient = create(id, client_ip, client_port);
-        add(&clientList, newClient);
-        client = newClient;
-        login(newClient);
-        saveAll(clientList);
-
-        sprintf(buffer, "%d - %u", 100, id);
-        send(connfd, buffer, 256, 0);
-    }
-    else
-    {
-        sprintf(buffer, "%d", 300);
-        send(connfd, buffer, 256, 0);
-    }
-}
-
-void SignInHandler(int connfd, struct Client *client, char *buffer)
-{
-    uint32_t clientID = 0;
-    char clientIP[201];
-    memset(clientIP, '\0', 201);
-    sscanf(buffer, "SI %u %200s", &clientID, clientIP);
-    clientIP[200] = '\0';
-    client = find(clientList, clientID);
-    if (client != NULL)
-    {
-        pthread_mutex_lock(&loginMutex);
-        if (client->isLogin == 1)
-        {
-            sprintf(buffer, "212");
-        }
-        else
-        {
-            login(client);
-            update(client, clientIP);
-            sprintf(buffer, "110");
-            saveAll(clientList);
-        }
-        pthread_mutex_unlock(&loginMutex);
-    }
-    else
-    {
-        sprintf(buffer, "210");
-    }
-    send(connfd, buffer, 256, 0);
-}
-
-void RegisterShareHandler(int connfd, char *buffer)
-{
-    char client_ip[BUFF_SIZE];
-    uint16_t client_port;
-    getInfoClient(connfd, client_ip, &client_port);
-
-    char type[3];
-    uint32_t id;
-    char filename[BUFF_SIZE];
-    if (sscanf(buffer, "%2s %u %s", type, &id, filename) == 3)
-    {
-        struct Client *existClient = find(clientList, id);
-        char client_ip[BUFF_SIZE];
-        uint16_t client_port;
-
-        strcpy(client_ip, inet_ntoa(existClient->_addr.sin_addr));
-        client_port = ntohs(existClient->_addr.sin_port);
-        update(existClient, client_ip);
-        saveAll(clientList);
-        int succes = updateIndex(id, client_ip, client_port, filename);
-        if (succes)
-        {
-            sprintf(buffer, "%d", 120);
-            send(connfd, buffer, 256, 0);
-        }
-        else
-        {
-            sprintf(buffer, "%d", 300);
-            send(connfd, buffer, 256, 0);
-        }
-    }
-    else
-    {
-        sprintf(buffer, "%d", 300);
-        send(connfd, buffer, 256, 0);
-    }
-}
-
-void CancelShareHandler(int connfd, char *buffer)
-{
-    char client_ip[BUFF_SIZE];
-    uint16_t client_port;
-    getInfoClient(connfd, client_ip, &client_port);
-
-    char type[3];
-    uint32_t id;
-    char filename[BUFF_SIZE];
-    if (sscanf(buffer, "%2s %u %s", type, &id, filename) == 3)
-    {
-        int succes = deleteIndex(id, filename);
-        if (succes == 1)
-        {
-            sprintf(buffer, "%d", 150);
-            send(connfd, buffer, 256, 0);
-        }
-        else if (succes == 0)
-        {
-            sprintf(buffer, "%d", 250);
-            send(connfd, buffer, 256, 0);
-        }
-        else
-        {
-            sprintf(buffer, "%d", 300);
-            send(connfd, buffer, 256, 0);
-        }
-    }
-    else
-    {
-        sprintf(buffer, "%d", 300);
-        send(connfd, buffer, 256, 0);
-    }
-}
-
-void FindShareFileHandler(int connfd, char *buffer)
-{
-}
-
-void DownloadFileHandler(int connfd, char *buffer)
-{
 }

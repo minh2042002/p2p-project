@@ -1,5 +1,9 @@
 #include "Client.h"
 #include <arpa/inet.h>
+#include <pthread.h>
+#include <string.h>
+#include <stdio.h>
+pthread_mutex_t loginMutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct Client *create(uint32_t id, char *ip, uint16_t port)
 {
@@ -11,7 +15,7 @@ struct Client *create(uint32_t id, char *ip, uint16_t port)
     }
     client->id = id;
     client->_addr.sin_family = AF_INET;
-    client->_addr.sin_port = htons(port);
+    client->_addr.sin_port = port;
     inet_pton(AF_INET, ip, &(client->_addr.sin_addr));
 
     client->next = NULL;
@@ -41,6 +45,24 @@ struct Client *find(struct Client *head, uint32_t id)
     while (current != NULL)
     {
         if (current->id == id)
+        {
+            return current;
+        }
+
+        current = current->next;
+    }
+
+    return NULL;
+}
+
+struct Client *findByIPAndPort(struct Client *head, char *ip, int port)
+{
+    struct Client *current = head;
+    char ipTmp[16];
+    while (current != NULL)
+    {
+        inet_pton(AF_INET, ipTmp, &(current->_addr.sin_addr));
+        if (strcmp(ip, ipTmp) && current->_addr.sin_port == port)
         {
             return current;
         }
@@ -81,21 +103,39 @@ void update(struct Client *client, const char *newIP)
         inet_pton(AF_INET, newIP, &(client->_addr.sin_addr));
     }
 }
-
-void login(struct Client *client)
+int login(struct Client *client)
 {
+    int status = 0;
     if (client != NULL)
     {
-        client->isLogin = 1;
+        pthread_mutex_lock(&loginMutex);
+        if (client->isLogin == 0)
+        {
+            client->isLogin = 1;
+            status = 1;
+        }
+        else
+        {
+            status = 0;
+        }
+        pthread_mutex_unlock(&loginMutex);
+        return status;
+    }
+    else
+    {
+        printf("Client is null\n");
+        exit(EXIT_FAILURE);
     }
 }
 
 void logout(struct Client *client)
 {
+    pthread_mutex_lock(&loginMutex);
     if (client != NULL)
     {
         client->isLogin = 0;
     }
+    pthread_mutex_unlock(&loginMutex);
 }
 
 void saveAll(struct Client *head)
