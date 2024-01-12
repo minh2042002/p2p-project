@@ -8,7 +8,7 @@ void FindFileHandler(int client_socket);
 void DownloadFileHandler(int client_socket);
 
 int createSocket();
-void signup(int socket);
+void signup(int socket, int listen_port);
 void login(int socket, uint32_t id, int port);
 int registerShareFile(int socket, uint32_t id, char *file_name);
 int cancelShareFile(int socket, uint32_t id, char *file_name);

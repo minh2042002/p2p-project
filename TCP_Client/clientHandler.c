@@ -139,8 +139,9 @@ void DownloadFileHandler(int client_socket)
 /**
  * @brief Handles sending registration to the server and saving the id to file
  * @param socket socket description (connect to server)
+ * @param listen_port listen port
  */
-void signup(int socket)
+void signup(int socket, int listen_port)
 {
     char buffer[BUFF_SIZE];
     int bytes_received;
@@ -148,7 +149,7 @@ void signup(int socket)
     uint32_t id;
 
     // request send protocol signup with format "SU"
-    sprintf(buffer, "SU\r\n");
+    sprintf(buffer, "SU %d\r\n", listen_port);
     send(socket, buffer, BUFF_SIZE, 0);
 
     bytes_received = recv(socket, buffer, BUFF_SIZE, 0);

@@ -70,7 +70,7 @@ void *connectServerThread(void *arg)
     uint32_t id = getID();
     if (id == -1)
     {
-        signup(client_socket);
+        signup(client_socket, listen_port);
     }
     else
     {
